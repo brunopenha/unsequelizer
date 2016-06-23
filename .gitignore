@@ -1,0 +1,3 @@
+bad-stuff/node_modules/
+bad-stuff/*.sql
+bad-stuff/dist-entities/

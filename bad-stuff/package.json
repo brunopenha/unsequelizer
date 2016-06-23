@@ -1,0 +1,30 @@
+{
+  "name": "bad-stuff",
+  "version": "0.0.1",
+  "description": "Bad \"Cthully\" regex stuff",
+  "main": "sql2entity.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/not-any-fools-tools/unsequelizer/bad-stuff/"
+  },
+  "keywords": [
+    "regex",
+    "sql",
+    "entity",
+    "transpilation",
+    "translation",
+    "dsl",
+    "ast"
+  ],
+  "author": "Not Any Fools' Tools (GitHub Organization)",
+  "license": "MIT",
+  "dependencies": {
+    "handlebars": "^4.0.5",
+    "mkdirp": "^0.5.1",
+    "rimraf": "^2.5.2",
+    "string": "^3.3.1"
+  }
+}
