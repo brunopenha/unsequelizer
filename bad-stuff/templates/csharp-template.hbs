@@ -8,8 +8,13 @@ namespace {{namespace}}
     /// <summary>
     /// TODO: write {{className}} summary
     /// </summary>
-    public class {{className}}
+    public class {{className}} {{#if base}}: {{base}}{{/if}}
     {
+        /// <summary>
+        /// TODO: write {{className}} constructor summary
+        /// </summary>
+        public {{className}}() { }
+
     {{#each fields}}
 
         /// <summary>

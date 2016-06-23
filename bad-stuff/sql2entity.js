@@ -80,52 +80,47 @@ function parseTables(data) {
 
 
 function generateEntitiesFiles(parsed) {
-  const classes = [];
+    const classes = [];
 
-  if (parsed) parsed.forEach(table => {
-    //console.log(table)
-    const map = new Table2Map(table);
-    classes.push(new Class(map.className, cliNamespace, map.fields, map.base));
-  })
-
-
-  for (let languageName in BUILTIN_LANGUAGE_DEFINITIONS) {
-    const language = BUILTIN_LANGUAGE_DEFINITIONS[languageName]
-
-    fs.readFile('templates/'+ language.folderName +'-template', 'utf8', (err, template) => {
-      if (err) {
-        return console.log(err)
-      }
-
-      const languageWriter = Handlebars.compile(template)
-
-      classes.forEach(classDefinition => {
-        const languageClass = classDefinition.buildForLanguage(language)
-
-        const file = new File( DIST_FOLDER_PATH +  language.folderName + '/' , languageClass.className + language.fileExtension, languageWriter(languageClass))
-
-        rimraf(file.path, ['rmdir'], err => {
-          if (err) return console.log(err)
-
-
-          mkdirp(file.path, (err) => {
-              if (err) console.error(err)
-
-          });
-
-          fs.writeFile(file.path + file.name, file.content, err => {
-              if (err) {
-                  return console.log(file.path, err);
-              }
-              console.log('\tWrote', language.name,  file.path + file.name)
-          });
-        })
-
-
-      })
+    if (parsed) parsed.forEach(table => {
+        //console.log(table)
+        const map = new Table2Map(table);
+        classes.push(new Class(map.className, cliNamespace, map.fields, map.base));
     })
-  }
 
+    for (let languageName in BUILTIN_LANGUAGE_DEFINITIONS) {
+        const language = BUILTIN_LANGUAGE_DEFINITIONS[languageName]
+        const languageOutputFolder = DIST_FOLDER_PATH + language.folderName;
+
+        rimraf(languageOutputFolder, ['rmdir'], err => {
+
+            if (err) return console.log(err)
+
+            mkdirp(languageOutputFolder, (err) => {
+                if (err) return console.error(err)
+
+                fs.readFile('templates/' + language.folderName + '-template.hbs', 'utf8', (err, template) => {
+                    if (err) {
+                        return console.log(err)
+                    }
+
+                    const languageWriter = Handlebars.compile(template)
+
+                    classes.forEach(classDefinition => {
+                        const languageClass = classDefinition.buildForLanguage(language)
+                        const file = new File(DIST_FOLDER_PATH + language.folderName + '/', languageClass.className + language.fileExtension, languageWriter(languageClass))
+
+                        fs.writeFile(file.path + file.name, file.content, err => {
+                            if (err) {
+                                return console.log(file.path, err);
+                            }
+                            console.log('\tWrote', language.name, file.path + file.name)
+                        });
+                    })
+                })
+            })
+        })
+    }
 }
 
 
@@ -300,12 +295,12 @@ const SQL_TO_CSHARP_DICTIONARY = {
   "BIT": 'boolean',
   "TINYINT": 'byte',
   "SMALLINT": 'Int16',
-  "MEDIUMINT": 'Int32',
+  "MEDIUMINT": 'int',
   "INT": 'int',
   "INTEGER": 'int',
   "BIGINT": 'long',
-  "DECIMAL": 'double',
-  "DEC": 'double',
+  "DECIMAL": 'decimal',
+  "DEC": 'decimal',
   "NUMERIC": 'long',
   "FLOAT": 'float',
   "DOUBLE": 'double',
@@ -313,22 +308,22 @@ const SQL_TO_CSHARP_DICTIONARY = {
   "REAL": 'double',
   "BOOL": 'boolean',
   "BOOLEAN": 'boolean',
-  "DATE": 'Date',
-  "DATETIME": 'Date',
-  "DATETIME2": 'Date',
+  "DATE": 'DateTime',
+  "DATETIME": 'DateTime',
+  "DATETIME2": 'DateTime',
   "UNIQUEIDENTIFIER": 'Guid',
   "UUID": 'Guid',
   "GUID": 'Guid',
-  "TIMESTAMP": 'Date',
-  "TIME": 'Date',
-  "YEAR": 'Date',
-  "TINYBLOB": 'string',
-  "BLOB": 'string',
-  "MEDIUMBLOB": 'string',
+  "TIMESTAMP": 'DateTime',
+  "TIME": 'DateTime',
+  "YEAR": 'DateTime',
+  "TINYBLOB": 'byte[]',
+  "BLOB": 'byte[]',
+  "MEDIUMBLOB": 'byte[]',
   "FILESTREAM": 'FileStream',
-  "MONEY": 'double',
-  "CURRENCY": 'double',
-  "NCHAR": 'string',
+  "MONEY": 'decimal',
+  "CURRENCY": 'decimal',
+  "NCHAR": 'char',
   "NTEXT": 'string',
   "SQL_VARIANT": '<SQL_VARIANT>',
   "TABLE": '<TABLE>',
