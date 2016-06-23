@@ -4,6 +4,9 @@ const mkdirp = require('mkdirp');
 const rimraf = require('rimraf');
 
 
+let cliNamespace = process.argv[3]
+
+
 const DIST_FOLDER_PATH = 'dist-entities/'
 // PROCESS -------------------------------------------
 
@@ -82,7 +85,7 @@ function generateEntitiesFiles(parsed) {
   if (parsed) parsed.forEach(table => {
     //console.log(table)
     const map = new Table2Map(table);
-    classes.push(new Class(map.className, null, map.fields, map.base));
+    classes.push(new Class(map.className, cliNamespace, map.fields, map.base));
   })
 
 
@@ -338,6 +341,8 @@ const SQL_TO_CSHARP_DICTIONARY = {
 const BUILTIN_LANGUAGE_DEFINITIONS = {
   'csharp': new LanguageDefinitions('C#', 'csharp', 'Core.Models', '.cs', SQL_TO_CSHARP_DICTIONARY) // name, defaultNamespace, fileExtension, dictionary
 }
+
+
 
 fs.readFile(process.argv[2], 'utf8', (err, data) => {
 

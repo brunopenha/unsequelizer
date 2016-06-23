@@ -13,7 +13,7 @@ namespace {{namespace}}
     {{#each fields}}
 
         /// <summary>
-        /// TODO: write {{className}}.{{fieldName}} summary
+        /// TODO: write {{../className}}.{{fieldName}} summary
         /// </summary>
         {{access}}{{#if isNullable}}Nullable<{{/if}}{{type}}{{#if isNullable}}>{{/if}} {{fieldName}} { get; set; }
     {{/each}}
