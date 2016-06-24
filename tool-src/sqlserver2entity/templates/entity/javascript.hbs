@@ -6,7 +6,7 @@ export class {{className.pascalCase}} {{#if base}}extends {{base.pascalCase}}{{/
     constructor() { }
 {{#each fields}}
 
-    set {{fieldName.pascalCase}}({{fieldName.camelCase}}) {
+    set {{fieldName.camelCase}}({{fieldName.camelCase}}) {
       this._{{fieldName.camelCase}} = {{fieldName.camelCase}};
     }
 

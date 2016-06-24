@@ -82,6 +82,9 @@ function aggregatorField(aggregator, field) {
   aggregators[aggregator] = merge
 }
 
+
+
+
 function generateEntitiesFiles(parsed) {
     const classes = [];
 
@@ -116,6 +119,11 @@ function generateEntitiesFiles(parsed) {
       }
     })
 
+    function writeControl() {
+      if (!--writeControl.count) console.log('\n'+'-'.repeat(5), "\nDone!", '\n'+'-'.repeat(5))
+    }
+    writeControl.count = classes.length + Object.keys(BUILTIN_LANGUAGE_DEFINITIONS).length
+
     for (let languageName in BUILTIN_LANGUAGE_DEFINITIONS) {
         const language = BUILTIN_LANGUAGE_DEFINITIONS[languageName]
         const languageOutputFolder = DIST_FOLDER_PATH + language.folderName;
@@ -143,6 +151,8 @@ function generateEntitiesFiles(parsed) {
                             if (err) {
                                 return console.log(file.path, err);
                             }
+
+                            writeControl()
                         });
                         //console.log('\tWrote', language.name, file.path + file.name)
                     })
