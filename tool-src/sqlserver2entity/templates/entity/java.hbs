@@ -5,7 +5,7 @@ package {{namespace.namespaceLowerCase}};
     public class {{className.pascalCase}} {{#if base}}extends {{base.pascalCase}}{{/if}}
     {
       {{#each fields}}
-        private {{{type.pascalCase}}} {{fieldName.camelCase}};
+        private {{{type}}} {{fieldName.camelCase}};
       {{/each}}
 
         /** {{className.pascalCase}}

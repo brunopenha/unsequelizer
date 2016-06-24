@@ -19,7 +19,7 @@ namespace {{namespace.namespacePascalCase}}
         /// <summary>
         /// TODO: write {{../className.pascalCase}}.{{fieldName.pascalCase}} summary
         /// </summary>
-        public {{#if isNullable}}Nullable<{{/if}}{{{type.pascalCase}}}{{#if isNullable}}>{{/if}} {{fieldName.pascalCase}} { get; set; }
+        public {{#if isNullable}}Nullable<{{/if}}{{{type}}}{{#if isNullable}}>{{/if}} {{fieldName.pascalCase}} { get; set; }
     {{/each}}
     }
 }

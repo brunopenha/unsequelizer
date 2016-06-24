@@ -184,7 +184,7 @@ const mapping = [
   {from : /_?Id\sPRIMARY\sKEY\s\(\b/gim,              to: ' PRIMARY KEY ('},// FIXME REMOVE _Id FROM PK NAME
   {from : /\bfk_(\w)/gim,                             to: 'FK_$1'},
   {from : /\bfk_(\w+?_)+idx\b/gim,                    to: 'IX_$1'},		      // INDEX TO "IN_"
-  {from : /\b(\w+)_UNIQUE\b/gim,                      to: 'UN_$1'}, 		    // UNIQUE INDEX TO "UN_"
+  {from : /\b(\w+)_UNIQUE\b/gim,                      to: 'UX_$1'}, 		    // UNIQUE INDEX TO "UN_"
   {from : /(.)_+?\s/gm, to: '$1 '},                                         // REMOVE TRAILING UNDERLINES
   {from : /DROP\W+SCHEMA([^;]+?);/gm,                   to: 'DROP SCHEMA $1;'},   // DROP SCHEMA
   {from : /CREATE\W+SCHEMA\s(.+?)\W+DEFAULT\W+CHARACTER.+?;/gm, to: 'CREATE SCHEMA $1;'}, // CREATE SCHEMA CLEAN
