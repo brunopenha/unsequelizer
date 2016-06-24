@@ -1,0 +1,26 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace {{namespace.namespacePascalCase}}
+{
+    /// <summary>
+    /// TODO: write {{className.pascalCase}} summary
+    /// </summary>
+    public class {{className.pascalCase}} {{#if base}}: {{base.pascalCase}}{{/if}}
+    {
+        /// <summary>
+        /// TODO: write {{className.pascalCase}} constructor summary
+        /// </summary>
+        public {{className.pascalCase}}() { }
+
+    {{#each fields}}
+
+        /// <summary>
+        /// TODO: write {{../className.pascalCase}}.{{fieldName.pascalCase}} summary
+        /// </summary>
+        public {{#if isNullable}}Nullable<{{/if}}{{type.pascalCase}}{{#if isNullable}}>{{/if}} {{fieldName.pascalCase}} { get; set; }
+    {{/each}}
+    }
+}
