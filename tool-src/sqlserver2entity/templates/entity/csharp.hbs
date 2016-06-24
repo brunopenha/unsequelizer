@@ -14,13 +14,12 @@ namespace {{namespace.namespacePascalCase}}
         /// TODO: write {{className.pascalCase}} constructor summary
         /// </summary>
         public {{className.pascalCase}}() { }
-
     {{#each fields}}
 
         /// <summary>
         /// TODO: write {{../className.pascalCase}}.{{fieldName.pascalCase}} summary
         /// </summary>
-        public {{#if isNullable}}Nullable<{{/if}}{{type.pascalCase}}{{#if isNullable}}>{{/if}} {{fieldName.pascalCase}} { get; set; }
+        public {{#if isNullable}}Nullable<{{/if}}{{{type.pascalCase}}}{{#if isNullable}}>{{/if}} {{fieldName.pascalCase}} { get; set; }
     {{/each}}
     }
 }

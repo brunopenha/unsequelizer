@@ -1,0 +1,17 @@
+/** {{className.pascalCase}}
+ ** TODO: write script doc
+ **/
+export class {{className.pascalCase}} {{#if base}}extends {{base.pascalCase}}{{/if}}
+{
+    constructor() { }
+{{#each fields}}
+
+    set {{fieldName.pascalCase}}({{fieldName.camelCase}}) {
+      this._{{fieldName.camelCase}} = {{fieldName.camelCase}};
+    }
+
+    get {{fieldName.camelCase}}() {
+      return this._{{fieldName.camelCase}};
+    }
+{{/each}}
+}

@@ -1,32 +1,27 @@
 package {{namespace.namespaceLowerCase}}
 {
     /** {{className.pascalCase}}
-     ** TODO: write JavaDoc
-     **/
+     ** TODO: write JavaDoc **/
     public class {{className.pascalCase}} {{#if base}}extends {{base.pascalCase}}{{/if}}
     {
       {{#each fields}}
-          private {{type.pascalCase}} {{fieldName.camelCase}};
+        private {{{type.pascalCase}}} {{fieldName.camelCase}};
       {{/each}}
 
         /** {{className.pascalCase}}
-         ** TODO: write constructor JavaDoc
-         **/
+         ** TODO: write constructor JavaDoc **/
         public {{className.pascalCase}}() { }
-
     {{#each fields}}
 
         /** set{{fieldName.pascalCase}}
-         ** TODO: write {{className.pascalCase}}.set{{fieldName.pascalCase}} JavaDoc
-         **/
-        private void set{{fieldName.pascalCase}}({{type}} {{fieldName.camelCase}}) {
+         ** TODO: write {{className.pascalCase}}.set{{fieldName.pascalCase}} JavaDoc **/
+        private void set{{fieldName.pascalCase}}({{{type}}} {{fieldName.camelCase}}) {
           this.{{fieldName.camelCase}} = {{fieldName.camelCase}};
         }
 
         /** get{{fieldName.pascalCase}}
-         ** TODO: write {{className.pascalCase}}.get{{fieldName.pascalCase}} JavaDoc
-         **/
-        private {{type}} get{{fieldName.pascalCase}}() {
+         ** TODO: write {{className.pascalCase}}.get{{fieldName.pascalCase}} JavaDoc **/
+        private {{{type}}} get{{fieldName.pascalCase}}() {
           return {{fieldName.camelCase}};
         }
     {{/each}}

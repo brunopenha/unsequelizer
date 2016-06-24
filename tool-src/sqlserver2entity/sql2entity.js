@@ -1,4 +1,7 @@
+'use strict'
+
 const fs = require('fs')
+
 const Handlebars = require('handlebars')
 const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
@@ -13,7 +16,7 @@ const DIST_FOLDER_PATH = 'dist-entities/'
 
 function parseTables(data) {
 
-    const SQL_DATA_TYPES = 'CHAR|VARCHAR|TINYTEXT|TEXT|MEDIUMTEXT|LONGTEXT|BINARY|VARBINARY|BIT|TINYINT|SMALLINT|MEDIUMINT|INT|INTEGER|BIGINT|DECIMAL|DEC|NUMERIC|FIXED|FLOAT|DOUBLE|DOUBLE[^w|;]+PRECISION|REAL|BOOL|BOOLEAN|DATE|DATETIME|DATETIME2|UNIQUEIDENTIFIER|UUID|GUID|TIMESTAMP|TIME|YEAR|TINYBLOB|BLOB|MEDIUMBLOB|FILESTREAM|NUMERIC|LONGTEXT|MONEY|CURRENCY|NCHAR|NTEXT|SQL_VARIANT|TABLE|CURSOR';
+    const SQL_DATA_TYPES = 'CHAR|CHARACTER|VARCHAR|NVARCHAR|TINYTEXT|TEXT|MEDIUMTEXT|LONGTEXT|BINARY|VARBINARY|BIT|TINYINT|SMALLINT|MEDIUMINT|INT|INTEGER|BIGINT|DECIMAL|DEC|NUMERIC|FIXED|FLOAT|DOUBLE|DOUBLE[^w|;]+PRECISION|REAL|BOOL|BOOLEAN|DATE|DATETIME|DATETIME2|UNIQUEIDENTIFIER|UUID|GUID|TIMESTAMP|TIME|YEAR|TINYBLOB|BLOB|MEDIUMBLOB|FILESTREAM|NUMERIC|LONGTEXT|MONEY|CURRENCY|NCHAR|NTEXT|SQL_VARIANT|TABLE|CURSOR';
 
     const REGEX_CREATE_TABLE = /\bCREATE\W+TABLE[^;]+/gim
     const REGEX_TABLE_SCHEMA_NAME = /\bCREATE\W+TABLE.+?(?:(\w+)\W*\.\W*)?(\w+)\W*\(/gim
@@ -43,21 +46,22 @@ function parseTables(data) {
             content.split(',').forEach(commandLine => {
 
                 //console.log(command)
-
+                REGEX_NOT_COLUMN.lastIndex = 0
                 if (REGEX_NOT_COLUMN.test(commandLine)) {
 
+                    REGEX_CONSTRAINT_REFERENCE.lastIndex = 0
                     if (REGEX_CONSTRAINT_REFERENCE.test(commandLine)) {
 
-                        multiMatch(commandLine, REGEX_CONSTRAINT_REFERENCE, (declaration, type, keys, referencedSchema, referencedTable) => {
 
-                            tableDTO.constraints.push(new TableConstraint(type, keys.split(','), referencedSchema, referencedTable))
+                        multiMatch(commandLine, REGEX_CONSTRAINT_REFERENCE, (declaration, type, keys, referencedSchema, referencedTable) => {
+                            tableDTO.constraints.push(new TableConstraint(type, keys.split(',').map(key => changeCase.snakeCase(key)), referencedSchema, referencedTable))
                         })
                     }
                 } else {
 
                     multiMatch(commandLine, REGEX_TABLE_COLUMN, (column, name, type, properties) => {
-
-                          tableDTO.columns.push(new TableColumn(name, type, properties))
+                      //console.log(type)
+                          tableDTO.columns.push(new TableColumn(changeCase.snakeCase(name), type, properties))
                     })
                 }
             })
@@ -90,7 +94,7 @@ function generateEntitiesFiles(parsed) {
             mkdirp(languageOutputFolder, (err) => {
                 if (err) return console.error(err)
 
-                fs.readFile('templates/' + language.folderName + '-template.hbs', 'utf8', (err, template) => {
+                fs.readFile('templates/entity/' + language.folderName + '.hbs', 'utf8', (err, template) => {
                     if (err) {
                         return console.log(err)
                     }
@@ -98,15 +102,15 @@ function generateEntitiesFiles(parsed) {
                     const languageWriter = Handlebars.compile(template)
 
                     classes.forEach(classDefinition => {
-                        const languageClass = classDefinition.buildForLanguage(language)
+                        const languageClass = classDefinition.cloneForLanguage(language)
                         const file = new File(DIST_FOLDER_PATH + language.folderName + '/', languageClass.className + language.fileExtension, languageWriter(languageClass))
 
                         fs.writeFile(file.path + file.name, file.content, err => {
                             if (err) {
                                 return console.log(file.path, err);
                             }
-                            console.log('\tWrote', language.name, file.path + file.name)
                         });
+                        //console.log('\tWrote', language.name, file.path + file.name)
                     })
                 })
             })
@@ -171,35 +175,141 @@ class TableConstraint {
 
 
 class Class {
-    constructor(className, namespace, fields, base, dependencies, acessor) {
-        this.className = new MultiCase(className)
-        this.namespace = new MultiCase(namespace)
-        this.base = new MultiCase(base) || null
-        this.dependencies = dependencies || [];
-        this.fields = Array.isArray(fields) ? fields : []
+    constructor(className, namespace, fields, base, dependencies, access) {
+        this.className = className
+        this.namespace = namespace
+        this.base = base
+        this.dependencies = dependencies
+        this.fields = fields
+        this.access = access
     }
 
-    buildForLanguage(language) {
-        const clone = new Class(this.className, this.namespace || language.defaultNamespace, this.fields, this.base, this.dependencies, this.acessor)
-        clone.fields.forEach(field => {
-            console.log(language.dictionary[field.type.upperCase.trim()], field.type.upperCase)
-            field.type = new MultiCase(language.dictionary[field.type.upperCase.trim()] || '<Undefined Type Conversion>');
-        })
+    set className(className) {
+      this._className = className
+    }
+
+    get className() {
+      return new MultiCase(this._className)
+    }
+
+    set namespace(namespace) {
+      this._namespace = namespace
+    }
+
+    get namespace() {
+      return new MultiCase(this._namespace)
+    }
+
+    set base(base) {
+      this._base = base || null
+    }
+
+    get base() {
+      return this._base ? new MultiCase(this._base) : null
+    }
+
+    set access(access) {
+      this._access = access
+    }
+
+    get access() {
+      return access ? new MultiCase(this._access) : null
+    }
+
+    set dependencies(dependencies) {
+      this._dependencies = Array.isArray(dependencies) ? dependencies : []
+    }
+
+    get dependencies () {
+      return this._dependencies.slice(0)
+    }
+
+    set fields(fields) {
+      this._fields = Array.isArray(fields) ? fields : []
+    }
+
+    get fields() {
+      return this._fields.map(field =>  field.clone())
+    }
+
+
+    clone() {
+      return new Class(this._className, this._namespace, this.fields, this._base, this.dependencies, this._access);
+    }
+
+    cloneForLanguage(language) {
+        const clone = this.clone()
+        clone.namespace = clone._namespace || language.defaultNamespace
+        if (language.dictionary) {
+           clone._fields.forEach(field => {
+              // console.log(field.type)
+               //console.log(language.name, language.dictionary[field.type.upperCase.trim()], field.type.upperCase)
+              field.type = language.dictionary[field.type.upperCase.trim()] || '<Undefined Type Conversion>'
+          })
+        }
         return clone
     }
 }
 
 class ClassField {
-    constructor(fieldName, type, isNullable, acessor) {
-        this.fieldName = new MultiCase(fieldName)
-        this.type = new MultiCase( type || 'void' )
-        this.isNullable = isNullable ? true : false
+    constructor(fieldName, type, isNullable, access) {
+        this.fieldName = fieldName
+        this.type = type
+        this.isNullable = isNullable
+        this.access = access
+    }
+
+    set fieldName(fieldName) {
+      this._fieldName = fieldName
+    }
+    get fieldName() {
+      return new MultiCase(this._fieldName)
+    }
+
+    set type(type) {
+      this._type =  type || 'void'
+    }
+
+    get type() {
+      return new MultiCase(this._type)
+    }
+
+    set isNullable(isNullable) {
+      this._isNullable = isNullable ? true : false
+    }
+
+    get isNullable() {
+      return this._isNullable
+    }
+
+    set access(access) {
+      this._access = access
+    }
+
+    get access() {
+      return new MultiCase(this._access)
+    }
+
+    clone() {
+      return new ClassField(this._fieldName, this._type, this._isNullable, this._access)
     }
 }
 
 class MultiCase {
   constructor(word) {
-    this.word = String(word)
+    this.word = word
+  }
+
+  clone() {
+    return new MultiCase(this.word)
+  }
+
+  set word(word) {
+    this._word = String(word)
+  }
+
+  get word() {
+    return this._word
   }
 
   toString() {
@@ -268,6 +378,7 @@ class Table2Map {
     constructor(table) {
 
         this.className = new MultiCase(table.name)
+        this.base = this.mapBase(table.columns, table.constraints)
         this.fields = this.mapComponents(table.columns, table.constraints) || []
     }
 
@@ -275,16 +386,25 @@ class Table2Map {
         let base = null;
 
         constraints.some(constraint => {
+
             if (constraint.type.toLowerCase() === 'primary') {
-                return constraint.keys.some(key => {
-                    return columns.some(column => {
-                        if (column.name.toLowerCase() === key.toLowerCase()) {
-                          console.log('ok')
-                            base = constraint.referencedTable
+//console.log(constraint.type, constraint.keys)
+              return constraints.some(comparedConstraint => {
+                  if (comparedConstraint.type.toLowerCase() === 'foreign') {
+                    return constraint.keys.some(primaryKey => {
+
+                      return comparedConstraint.keys.some(foreignKey => {
+
+                        if (foreignKey.toLowerCase() === primaryKey.toLowerCase()) {
+                        // console.log(foreignKey.toLowerCase() === primaryKey.toLowerCase(), comparedConstraint)
+                            //  if (foreignKey.referencedTable == 'undefined') console.log( foreignKey)
+                            base = comparedConstraint.referencedTable
                             return true
                         }
+                      })
                     })
-                })
+                  }
+              })
             }
         })
 
@@ -299,13 +419,13 @@ class Table2Map {
               //console.log(constraint.type, constraint.type.toLowerCase() === 'foreign')
                 if (constraint.type.toLowerCase() === 'foreign') {
                     return constraint.keys.some(key => {
-                        console.log(column.name.toLowerCase() === key.toLowerCase(), column.name.toLowerCase(),  key.toLowerCase())
+                      //  if (column.name.toLowerCase() === key.toLowerCase()) console.log(column.name.toLowerCase() === key.toLowerCase(), column.name.toLowerCase(),  key.toLowerCase())
                         return column.name.toLowerCase() === key.toLowerCase();
                     })
                 }
             })
 
-            if (isForeign) return;
+           if (isForeign) return;
 
             fields.push(new ClassField(
                 column.name, // fieldName
@@ -324,6 +444,7 @@ class Table2Map {
 function multiMatch(str, regex, fn) {
     let match = null;
     regex = new RegExp(regex.source, regex.flags); // regex.lastIndex = 0 without changing external regex
+    // regex.lastIndex = 0
     while (match = regex.exec(str)) fn.apply(null, match)
 }
 
@@ -358,6 +479,7 @@ const SQL_TO_CSHARP_DICTIONARY = { // SEE: http://stackoverflow.com/a/968734/126
     "MONEY": 'decimal',
     "NCHAR": 'char',
     "NTEXT": 'string',
+    "NVARCHAR": 'string',
     "NUMERIC": 'long',
     "REAL": 'double',
     "SMALLINT": 'Int16',
@@ -376,12 +498,60 @@ const SQL_TO_CSHARP_DICTIONARY = { // SEE: http://stackoverflow.com/a/968734/126
     "YEAR": 'DateTime'
 }
 
+const SQL_TO_JAVA_DICTIONARY = { // SEE: http://stackoverflow.com/a/968734/1260526
+    "BIGINT": 'BigInteger',
+    "BINARY": 'Byte',
+    "BIT": 'Boolean',
+    "BLOB": 'byte[]',
+    "BOOL": 'Boolean',
+    "BOOLEAN": 'Boolean',
+    "CHAR": 'Char',
+    "CURRENCY": 'BigDecimal',
+    "CURSOR": '<CURSOR>',
+    "DATE": 'Calendar',
+    "DATETIME": 'Calendar',
+    "DATETIME2": 'Calendar',
+    "DEC": 'BigDecimal',
+    "DECIMAL": 'BigDecimal',
+    "DOUBLE PRECISION": 'Double',
+    "DOUBLE": 'Double',
+    "FILESTREAM": 'ByteStream',
+    "FLOAT": 'Float',
+    "GUID": 'String',
+    "INT": 'Integer',
+    "INTEGER": 'Integer',
+    "LONGTEXT": 'String',
+    "MEDIUMBLOB": 'byte[]',
+    "MEDIUMINT": 'Integer',
+    "MEDIUMTEXT": 'String',
+    "MONEY": 'BigDecimal',
+    "NCHAR": 'Char',
+    "NVARCHAR": 'String',
+    "NTEXT": 'String',
+    "NUMERIC": 'Long',
+    "REAL": 'Double',
+    "SMALLINT": 'Short',
+    "SQL_VARIANT": '<SQL_VARIANT>',
+    "TABLE": '<TABLE>',
+    "TEXT": 'String',
+    "TIME": 'Calendar',
+    "TIMESTAMP": 'Calendar',
+    "TINYBLOB": 'byte[]',
+    "TINYINT": 'Byte',
+    "TINYTEXT": 'String',
+    "UNIQUEIDENTIFIER": 'Guid',
+    "UUID": 'String',
+    "VARBINARY": 'boolean',
+    "VARCHAR": 'String',
+    "YEAR": 'Calendar'
+}
+
+
 // EXECUTE ------------------------------------------
-
-
 const BUILTIN_LANGUAGE_DEFINITIONS = {
     'csharp': new LanguageDefinitions('C#', 'csharp', 'Core.Models', '.cs', SQL_TO_CSHARP_DICTIONARY), // name, defaultNamespace, fileExtension, dictionary
-    'java': new LanguageDefinitions('Java', 'java', 'Core.Models', '.java', SQL_TO_CSHARP_DICTIONARY) // name, defaultNamespace, fileExtension, dictionary
+    'java': new LanguageDefinitions('Java', 'java', 'Core.Models', '.java', SQL_TO_JAVA_DICTIONARY), // name, defaultNamespace, fileExtension, dictionary
+    'javascript': new LanguageDefinitions('JavaScript', 'javascript', 'Core.Models', '.js', null)
 }
 
 
