@@ -1,0 +1,5 @@
+type {{className.pascalCase}} struct {
+{{#each fields}}
+    {{fieldName.pascalCase}}      {{{type}}}
+{{/each}}
+}

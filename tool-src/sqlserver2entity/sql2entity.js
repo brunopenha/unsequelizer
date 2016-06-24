@@ -609,11 +609,60 @@ const SQL_TO_JAVA_DICTIONARY = { // SEE: http://stackoverflow.com/a/968734/12605
     "YEAR": 'Calendar'
 }
 
+const SQL_TO_GO_DICTIONARY = { // SEE: http://stackoverflow.com/a/968734/1260526
+    "BIGINT": 'int64',
+    "BINARY": 'uint8',
+    "BIT": 'bool',
+    "BLOB": '[]byte',
+    "BOOL": 'bool',
+    "BOOLEAN": 'bool',
+    "CHAR": '[]byte',
+    "CURRENCY": 'float64',
+    "CURSOR": '<CURSOR>',
+    "DATE": 'Time',
+    "DATETIME": 'Time',
+    "DATETIME2": 'Time',
+    "DEC": 'float64',
+    "DECIMAL": 'float64',
+    "DOUBLE PRECISION": 'float64',
+    "DOUBLE": 'float64',
+    "FILESTREAM": '[]byte',
+    "FLOAT": 'float32',
+    "GUID": 'string',
+    "INT": 'int32',
+    "INTEGER": 'int32',
+    "LONGTEXT": 'string',
+    "MEDIUMBLOB": '[]byte',
+    "MEDIUMINT": 'int32',
+    "MEDIUMTEXT": 'string',
+    "MONEY": 'float64',
+    "NCHAR": '[]byte',
+    "NVARCHAR": 'string',
+    "NTEXT": 'string',
+    "NUMERIC": 'int64',
+    "REAL": 'float64',
+    "SMALLINT": 'int16',
+    "SQL_VARIANT": '<SQL_VARIANT>',
+    "TABLE": '<TABLE>',
+    "TEXT": 'string',
+    "TIME": 'Time',
+    "TIMESTAMP": 'Time',
+    "TINYBLOB": '[]byte',
+    "TINYINT": 'uint8',
+    "TINYTEXT": 'string',
+    "UNIQUEIDENTIFIER": 'string',
+    "UUID": 'string',
+    "VARBINARY": 'bool',
+    "VARCHAR": 'string',
+    "YEAR": 'Time'
+}
+
 
 // EXECUTE ------------------------------------------
 const BUILTIN_LANGUAGE_DEFINITIONS = {
     'csharp': new LanguageDefinitions('C#', 'csharp', 'Core.Models', '.cs', SQL_TO_CSHARP_DICTIONARY), // name, defaultNamespace, fileExtension, dictionary
     'java': new LanguageDefinitions('Java', 'java', 'Core.Models', '.java', SQL_TO_JAVA_DICTIONARY), // name, defaultNamespace, fileExtension, dictionary
+    'golang': new LanguageDefinitions('Go', 'golang', 'Core.Models', '.go', SQL_TO_GO_DICTIONARY), // name, defaultNamespace, fileExtension, dictionary
     'javascript': new LanguageDefinitions('JavaScript', 'javascript', 'Core.Models', '.js', null)
 }
 
