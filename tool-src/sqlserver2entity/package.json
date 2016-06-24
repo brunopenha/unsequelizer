@@ -1,7 +1,7 @@
 {
-  "name": "bad-stuff",
+  "name": "sql2entity",
   "version": "0.0.1",
-  "description": "Bad \"Cthully\" regex stuff",
+  "description": "Converts SQL Script (currently only SQL Server) to entities.",
   "private": true,
   "main": "sql2entity.js",
   "scripts": {
@@ -12,13 +12,16 @@
     "url": "https://github.com/not-any-fools-tools/unsequelizer/bad-stuff/"
   },
   "keywords": [
-    "regex",
     "sql",
     "entity",
+    "dsl",
+    "ast",
+    "framework",
+    "generator",
     "transpilation",
     "translation",
-    "dsl",
-    "ast"
+    "java",
+    "c#"
   ],
   "author": "Not Any Fools' Tools (GitHub Organization)",
   "license": "MIT",
