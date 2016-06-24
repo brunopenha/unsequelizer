@@ -2,6 +2,7 @@
   "name": "bad-stuff",
   "version": "0.0.1",
   "description": "Bad \"Cthully\" regex stuff",
+  "private": true,
   "main": "sql2entity.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
