@@ -73,6 +73,14 @@ function parseTables(data) {
     return tables;
 }
 
+// TODO ENHANCE AGGREGATOR ENGINE
+const aggregators = {}
+
+function aggregatorField(aggregator, field) {
+  const merge = aggregators[aggregator] || {}
+  if (!merge[field.fieldName]) merge[field.fieldName] = field
+  aggregators[aggregator] = merge
+}
 
 function generateEntitiesFiles(parsed) {
     const classes = [];
@@ -81,6 +89,31 @@ function generateEntitiesFiles(parsed) {
         //console.log(table)
         const map = new Table2Map(table);
         classes.push(new Class(map.className, cliNamespace, map.fields, map.base));
+    })
+
+  //  console.log(aggregators['OrganizationKind'])
+
+    classes.forEach(classDefinition => {
+
+      // AGGREGATOR FIELD DASH
+      for(let aggregator in aggregators) {
+
+        if (aggregator === classDefinition.className.toString()) {
+        //  console.log(aggregator , classDefinition.className.toString(), aggregator === classDefinition.className.toString())
+      //    console.log(classDefinition.className.toString(), '+', aggregators[aggregator])
+
+        const aggregatorFields = aggregators[aggregator]
+
+        for(let fieldName in aggregatorFields) {
+            classDefinition.fields = classDefinition.fields.concat(aggregatorFields[fieldName])
+        }
+        //console.log(aggregators[aggregator] instanceof ClassField, aggregators[aggregator])
+          //console.log(classDefinition.className.toString(), classDefinition.fields.concat(aggregators[aggregator]))
+
+      //    classDefinition.fields = classDefinition.fields.concat(aggregators[aggregator])
+
+        }
+      }
     })
 
     for (let languageName in BUILTIN_LANGUAGE_DEFINITIONS) {
@@ -102,6 +135,7 @@ function generateEntitiesFiles(parsed) {
                     const languageWriter = Handlebars.compile(template)
 
                     classes.forEach(classDefinition => {
+
                         const languageClass = classDefinition.cloneForLanguage(language)
                         const file = new File(DIST_FOLDER_PATH + language.folderName + '/', languageClass.className + language.fileExtension, languageWriter(languageClass))
 
@@ -229,7 +263,8 @@ class Class {
     }
 
     get fields() {
-      return this._fields.map(field =>  field.clone())
+      // return this._fields.map(field => field.clone())
+      return this._fields.map(field => field.clone())
     }
 
 
@@ -244,7 +279,7 @@ class Class {
            clone._fields.forEach(field => {
               // console.log(field.type)
                //console.log(language.name, language.dictionary[field.type.upperCase.trim()], field.type.upperCase)
-              field.type = language.dictionary[field.type.upperCase.trim()] || '<Undefined Type Conversion>'
+              if (!field.isAggregated) field.type = language.dictionary[field.type.upperCase.trim()] || '<Undefined Type Conversion>'
           })
         }
         return clone
@@ -252,10 +287,11 @@ class Class {
 }
 
 class ClassField {
-    constructor(fieldName, type, isNullable, access) {
+    constructor(fieldName, type, isNullable, isAggregated, access) {
         this.fieldName = fieldName
         this.type = type
         this.isNullable = isNullable
+        this.isAggregated = isAggregated
         this.access = access
     }
 
@@ -272,6 +308,14 @@ class ClassField {
 
     get type() {
       return new MultiCase(this._type)
+    }
+
+    set isAggregated(isAggregated) {
+      this._isAggregated = isAggregated  ? true : false
+    }
+
+    get isAggregated() {
+      return this._isAggregated
     }
 
     set isNullable(isNullable) {
@@ -291,7 +335,7 @@ class ClassField {
     }
 
     clone() {
-      return new ClassField(this._fieldName, this._type, this._isNullable, this._access)
+      return new ClassField(this._fieldName, this._type, this._isNullable, this._isAggregated, this._access)
     }
 }
 
@@ -374,11 +418,15 @@ class MultiCase {
 }
 
 
+
 class Table2Map {
     constructor(table) {
 
         this.className = new MultiCase(table.name)
+
+        // FIXME BASE MUST COME BEFORE COMPONENTS
         this.base = this.mapBase(table.columns, table.constraints)
+
         this.fields = this.mapComponents(table.columns, table.constraints) || []
     }
 
@@ -412,15 +460,27 @@ class Table2Map {
     }
 
     mapComponents(columns, constraints) {
-        const fields = [];
+        const fields = []
+
+
         if (columns) columns.forEach(column => {
 
             let isForeign = constraints.some(constraint => {
               //console.log(constraint.type, constraint.type.toLowerCase() === 'foreign')
                 if (constraint.type.toLowerCase() === 'foreign') {
                     return constraint.keys.some(key => {
-                      //  if (column.name.toLowerCase() === key.toLowerCase()) console.log(column.name.toLowerCase() === key.toLowerCase(), column.name.toLowerCase(),  key.toLowerCase())
-                        return column.name.toLowerCase() === key.toLowerCase();
+                      if (constraint.referencedTable !== this.base) {
+                        aggregatorField(this.className.toString(),
+                          new ClassField(
+                            constraint.referencedTable, // fieldName
+                            constraint.referencedTable, // type
+                            true, // isNullable?
+                            true // isAggregated
+                          )
+                        )
+                      }
+                      return column.name.toLowerCase() === key.toLowerCase();
+
                     })
                 }
             })
@@ -430,13 +490,16 @@ class Table2Map {
             fields.push(new ClassField(
                 column.name, // fieldName
                 column.type, // type
-                (/\bNOT\W+NULL\b/gim).test(column.properties) // isNullable?
+                (/\bNOT\W+NULL\b/gim).test(column.properties), // isNullable?
+                false // isAggregated
             ))
         })
         return fields;
     }
 
 }
+
+
 
 
 // UTILS ---------------------------------------------
