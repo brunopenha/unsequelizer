@@ -22,7 +22,7 @@ function parseTables(data) {
     const REGEX_TABLE_SCHEMA_NAME = /\bCREATE\W+TABLE.+?(?:(\w+)\W*\.\W*)?(\w+)\W*\(/gim
     const REGEX_TABLE_CONTENT = /\bCREATE\W+TABLE[^(]+\(([\s\S]+)\)/gim
 
-    const REGEX_NOT_COLUMN = /^\W*(?:PRIMARY\W+KEY|CONSTRAINT)[^,]+,?/gim
+  //  const REGEX_NOT_COLUMN = /^\W*(?:PRIMARY\W+KEY|CONSTRAINT)[^,]+,?/gim
 
     const REGEX_TABLE_COLUMN = new RegExp('(?:\\W*(\\w+)\\W+(' + SQL_DATA_TYPES + ')(?:\\W*\\([^)]+\\))?([\\s\\S]+))', 'gim') // [name, type, properties]
 
@@ -32,7 +32,7 @@ function parseTables(data) {
 
     const tables = []
 
-    multiMatch(data.replace(/(?:\r?\n|\s)+/gim, ' ').replace(), REGEX_CREATE_TABLE, table => {
+    multiMatch(data.replace(/(?:\r?\n|\s)+/gim, ' '), REGEX_CREATE_TABLE, table => {
 
         REGEX_TABLE_SCHEMA_NAME.lastIndex = 0
         const titleMatch = REGEX_TABLE_SCHEMA_NAME.exec(table)
@@ -45,18 +45,15 @@ function parseTables(data) {
 
             content.split(',').forEach(commandLine => {
 
-                //console.log(command)
-                REGEX_NOT_COLUMN.lastIndex = 0
-                if (REGEX_NOT_COLUMN.test(commandLine)) {
-
-                    REGEX_CONSTRAINT_REFERENCE.lastIndex = 0
-                    if (REGEX_CONSTRAINT_REFERENCE.test(commandLine)) {
-
+                console.log(commandLine)
+                REGEX_CONSTRAINT_REFERENCE.lastIndex = 0
+                if (REGEX_CONSTRAINT_REFERENCE.test(commandLine)) {
 
                         multiMatch(commandLine, REGEX_CONSTRAINT_REFERENCE, (declaration, type, keys, referencedSchema, referencedTable) => {
+console.log(declaration)
                             tableDTO.constraints.push(new TableConstraint(type, keys.split(',').map(key => changeCase.snakeCase(key)), referencedSchema, referencedTable))
                         })
-                    }
+
                 } else {
 
                     multiMatch(commandLine, REGEX_TABLE_COLUMN, (column, name, type, properties) => {
@@ -443,6 +440,7 @@ class Table2Map {
     mapBase(columns, constraints) {
         let base = null;
 
+          if (this.className == 'BusinessGroupAssociate') console.log('BusinessGroupAssociate', columns),console.log('BusinessGroupAssociate', constraints)
         constraints.some(constraint => {
 
             if (constraint.type.toLowerCase() === 'primary') {
@@ -517,7 +515,6 @@ class Table2Map {
 function multiMatch(str, regex, fn) {
     let match = null;
     regex = new RegExp(regex.source, regex.flags); // regex.lastIndex = 0 without changing external regex
-    // regex.lastIndex = 0
     while (match = regex.exec(str)) fn.apply(null, match)
 }
 
