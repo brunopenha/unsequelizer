@@ -27,7 +27,7 @@ function parseTables(data) {
     const REGEX_TABLE_COLUMN = new RegExp('(?:\\W*(\\w+)\\W+(' + SQL_DATA_TYPES + ')(?:\\W*\\([^)]+\\))?([\\s\\S]+))', 'gim') // [name, type, properties]
 
     const REGEX_CONSTRAINT_REFERENCE =
-        /\W*CONSTRAINT[^,)]+(PRIMARY|FOREIGN)\W+KEY\W*\(([^)]+)\)(?:\W+REFERENCES\W+(?:(\w+)\W*\.\W*)?(\w+))?/gim; // [type, keys, schema, referenced table]
+        /\bCONSTRAINT[^,)]+(PRIMARY|FOREIGN)\W+KEY\W*\(([^)]+)\)(?:\W+REFERENCES\W+(?:(\w+)\W*\.\W*)?(\w+))?/gim; // [type, keys, schema, referenced table]
 
 
     const tables = []
@@ -43,14 +43,14 @@ function parseTables(data) {
 
             const tableDTO = new Table(tableSchema, tableName);
 
-            content.split(',').forEach(commandLine => {
+            content.split(/,(?![^,]+\))/m).forEach(commandLine => {
 
-                console.log(commandLine)
+                // console.log(commandLine)
                 REGEX_CONSTRAINT_REFERENCE.lastIndex = 0
                 if (REGEX_CONSTRAINT_REFERENCE.test(commandLine)) {
 
                         multiMatch(commandLine, REGEX_CONSTRAINT_REFERENCE, (declaration, type, keys, referencedSchema, referencedTable) => {
-console.log(declaration)
+// console.log(declaration)
                             tableDTO.constraints.push(new TableConstraint(type, keys.split(',').map(key => changeCase.snakeCase(key)), referencedSchema, referencedTable))
                         })
 
