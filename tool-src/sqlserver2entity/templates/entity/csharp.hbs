@@ -17,9 +17,9 @@ namespace {{namespace.namespacePascalCase}}
     {{#each fields}}
 
         /// <summary>
-        /// TODO: write {{../className.pascalCase}}.{{fieldName.pascalCase}} summary
+        /// TODO: write {{../className.pascalCase}}.{{fieldName.pascalCase}}{{#if isCollection}}s{{/if}} summary
         /// </summary>
-        public {{#if isNullable}}Nullable<{{/if}}{{{type}}}{{#if isNullable}}>{{/if}} {{fieldName.pascalCase}} { get; set; }
+        public {{#unless isClassReference}}{{#if isNullable}}Nullable<{{/if}}{{/unless}}{{#if isCollection}}List<{{/if}}{{#if isClassReference}}{{type.pascalCase}}{{else}}{{{type}}}{{/if}}{{#if isCollection}}>{{/if}}{{#unless isClassReference}}{{#if isNullable}}>{{/if}}{{/unless}} {{fieldName.pascalCase}}{{#if isCollection}}s{{/if}} { get; set; }
     {{/each}}
     }
 }
