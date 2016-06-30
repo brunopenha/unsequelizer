@@ -571,9 +571,14 @@ class Table2Class {
 // UTILS ---------------------------------------------
 
 function multiMatch(str, regex, fn) {
-    let match = null
-    const cloneRegex = new RegExp(regex.source, regex.flags) // regex.lastIndex = 0 without changing external regex
-    while (match = cloneRegex.exec(str)) fn.apply(null, match)
+    let indexBefore = regex.lastIndex
+    regex.lastIndex = 0
+    fn.apply(null, regex.exec(str))
+    if (regex.global) {
+        let match
+        while (match = regex.exec(str)) fn.apply(null, match)
+    }
+    regex.lastIndex = indexBefore
 }
 
 
