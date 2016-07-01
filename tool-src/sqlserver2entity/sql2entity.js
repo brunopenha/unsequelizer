@@ -1,3 +1,4 @@
+// HACK: Rustic, bearded, angry and sweating
 'use strict'
 
 const fs = require('fs')
