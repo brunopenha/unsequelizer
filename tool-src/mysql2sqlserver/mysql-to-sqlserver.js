@@ -1,3 +1,5 @@
+// HACK: Rustic, bearded, angry and sweating
+
 const fs = require('fs');
 
 fs.readFile(process.argv[2], 'utf8', (err,data) => {
@@ -194,9 +196,6 @@ const mapping = [
 
 const BLOCK_SEPARATOR = '\n' + '-'.repeat(15) +'\n'
 const TYPE_REPLACEMENT_MARK = '§';
-
-
-// HACK Rustic, bearded, angry and sweating
 
 function convert(data) {
 
