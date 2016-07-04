@@ -1,3 +1,5 @@
+// HACK: Rustic, bearded, angry and sweating
+
 const fs = require('fs');
 
 fs.readFile(process.argv[2], 'utf8', (err,data) => {
@@ -152,10 +154,10 @@ const TYPE_CONVERSION_REFERENCE = [
   // 'varbinary[0..1]/, 'varbinary[1]'],
   // 'varbinary[2..8000]/, 'varbinary[*]'],
   // 'varbinary[8001..*]/, 'varbinary(max)'],
-  [/varchar(?:\([0-1]\))/, 'nvarchar[1]'], // 'varchar[0..1]/, 'nvarchar[1]'],
+  //[/varchar(?:\([0-1]\))/, 'nvarchar[1]'], // 'varchar[0..1]/, 'nvarchar[1]'],
   // 'varchar[2..4000]/, 'nvarchar[*]'],
   // 'varchar[4001..*]/, 'nvarchar(max)'],
-  [/varchar(\(\d+\))?/, 'nvarchar$1'],
+  //[/varchar(\(\d+\))?/, 'nvarchar$1'],
   [/year(?:\(\d+\))?/, 'smallint'], //  [/year[2..2]': 'smallint'],  [/year[4..4]': 'smallint'],
 ]
 
@@ -182,9 +184,6 @@ const mapping = [
 
 const BLOCK_SEPARATOR = '\n' + '-'.repeat(15) +'\n'
 const TYPE_REPLACEMENT_MARK = '§';
-
-
-// HACK Rustic, bearded, angry and sweating
 
 function convert(data) {
 
