@@ -57,7 +57,8 @@ const TYPE_CONVERSION_REFERENCE = [
   // 'character[0..1]/, 'nchar[1]'],
   // 'character[2..255]/, 'nchar[*]'],
   [/date/, 'date'],
-  [/datetime/, 'datetime2[0]'], // datetime without fraction
+  [/datetime/, 'datetime2'], // datetime without fraction
+  //[/datetime/, 'datetime2[0]'], // datetime without fraction
   [/dec/, 'decimal'],
   // 'dec[*..65]/, 'decimal[*][0]'],
   // 'dec[*..65][*..30]/, 'decimal[*][*]'],
@@ -161,26 +162,13 @@ const TYPE_CONVERSION_REFERENCE = [
 
 const mapping = [
   {from: /CREATE\sTABLE((?:.+?\.)*([^\)]+?)\([^;]+)PRIMARY\sKEY\s(\([^\)]+\))/gm, to: 'CREATE TABLE $1CONSTRAINT PK_$2 PRIMARY KEY $3'}, // MYSQL TO SQLSERVER PK CONSTRAINT
-
   {from : /\`/gm,                                     to: ''},              // REMOVE ``
   {from : /_id\b/gim,                                 to: '_Id'},           // FIX ID CASE
-
   {from: /\bCOMMENT\W+.+?;/gim,                       to: '' },              // FIXME  REMOVE MYSQL COMMENT
-
   {from : /\n?ENGINE\s*?\=\s*?InnoDB/gim,             to: ''}, 	            // REMOVE MYSQL ENGINE
-  // {from : /\bCHAR\(\d+\)/gm,                       to: 'CHAR'}, 		      // CHAR() -> CHAR
-  // {from : /\bBOOL(?:EAN)?/gm,                      to: 'BIT'}, 		      // BOOL(EAN) -> BIT
-  // {from : /\bBIT\(\d+?\)/gm,                       to: 'BIT'}, 		      // BIT() -> BIT
-  // {from : /\bTINYINT\(\d+?\)/gm,                   to: 'TINYINT'},	      // TINYINT() -> TINYINT
-  // {from : /\bINTEGER\b/gm,                         to: 'INT'},			      // INTEGER -> INT
-  // {from : /\bMEDIUMINT\b/gm,                       to: 'INT'},		        // MEDIUMINT -> INT
-  // {from : /\bDOUBLE\b/gm,                          to: 'FLOAT(25)'},	    // DOUBLE -> FLOAT(25)
-  // {from : /\bMEDIUMBLOB\b/gm,                      to: 'FILESTREAM'},    // MEDIUMBLOB -> FILESTREAM
-  // {from : /\bDATETIME\b/gm,                        to: 'DATETIME2'},     // REF http://stackoverflow.com/questions/1334143/sql-server-datetime2-vs-datetime
   {from : /\bIF\W+NOT\W+EXISTS\b/gm,                  to: ''},		          // REMOVE "IF NOT EXISTS"
   {from : /\bIF\W+EXISTS\b/gm,                        to: ''},			        // REMOVE "IF EXISTS"
-  {from : /\bNOT\W+NULL\W+AUTO_INCREMENT\b/gm,        to: 'IDENTITY NOT NULL'},	// AUTO_INCREMENT STATEMENT -> IDENTITY STATEMENT
-  //{from : /\bPRIMARY\sKEY\s\(([^,]+?)\)/gm,         to: 'CONSTRAINT PK_$1 PRIMARY KEY ($1)'}, // FIXME PRIMARY KEY NAME CREATION
+  {from : /\bNOT\W+NULL\W+AUTO_INCREMENT\b/gm,        to: 'IDENTITY NOT NULL'},	// AUTO_INCREMENT STATEMENT -> IDENTITY STATEMENT1
   {from : /_?Id\sPRIMARY\sKEY\s\(\b/gim,              to: ' PRIMARY KEY ('},// FIXME REMOVE _Id FROM PK NAME
   {from : /\bfk_(\w)/gim,                             to: 'FK_$1'},
   {from : /\bfk_(\w+?_)+idx\b/gim,                    to: 'IX_$1'},		      // INDEX TO "IN_"
@@ -215,7 +203,7 @@ function convert(data) {
   })
 
    // MARK TYPES TO AVOID OVERLAPPING TYPE REPLACEMENT
-  const marker = new RegExp('\\b(' + types.join('|') + '\\b)', 'gim');
+  const marker = new RegExp('\\b(' + types.join('|') + ')\\b', 'gim');
 
   appliedTypeRegexps.push('MARKER REGEX>' + marker.source + ' '+ marker.flags, '\n')
   data = data.replace(marker, TYPE_REPLACEMENT_MARK + '$1' + TYPE_REPLACEMENT_MARK)
