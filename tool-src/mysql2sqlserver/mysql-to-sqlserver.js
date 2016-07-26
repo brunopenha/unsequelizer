@@ -22,7 +22,7 @@ fs.readFile(process.argv[2], 'utf8', (err,data) => {
 const TYPE_CONVERSION_REFERENCE = [
 
   // TODO write types correctly in this dictionary  (no time now... and wtf is [*] Microsoft?)
-
+  [/MULTIPOLYGON/, 'UNIQUEIDENTIFIER'], // TODO better UNIQUEIDENTIFIER definition
   [/bigint(?:\(\d+\))?/, 'bigint'], // 'bigint[*..255]/, 'bigint'
   [/binary(?:\(1\))?/, 'binary[1]'], // 'binary(1)/, 'binary[1]'], 'binary/, 'binary[1]'],
   // 'binary[2..255]/, 'binary[*]'],
