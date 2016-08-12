@@ -170,7 +170,7 @@ const mapping = [
   {from : /\n?ENGINE\s*?\=\s*?InnoDB/gim,             to: ''}, 	            // REMOVE MYSQL ENGINE
   {from : /\bIF\W+NOT\W+EXISTS\b/gm,                  to: ''},		          // REMOVE "IF NOT EXISTS"
   {from : /\bIF\W+EXISTS\b/gm,                        to: ''},			        // REMOVE "IF EXISTS"
-  {from : /\bNOT\W+NULL\W+AUTO_INCREMENT\b/gm,        to: 'IDENTITY NOT NULL'},	// AUTO_INCREMENT STATEMENT -> IDENTITY STATEMENT1
+  {from : /\bNOT\W+NULL\W+AUTO_INCREMENT\b/gm,        to: 'IDENTITY(1,1) NOT NULL'},	// AUTO_INCREMENT STATEMENT -> IDENTITY STATEMENT1
   {from : /_?Id\sPRIMARY\sKEY\s\(\b/gim,              to: ' PRIMARY KEY ('},// FIXME REMOVE _Id FROM PK NAME
   {from : /\bfk_(\w)/gim,                             to: 'FK_$1'},
   {from : /\bfk_(\w+?_)+idx\b/gim,                    to: 'IX_$1'},		      // INDEX TO "IN_"
