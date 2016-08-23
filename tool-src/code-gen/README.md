@@ -1,4 +1,4 @@
-## SQL 2 Entity
+## Code-gen
 
 Converts SQL Script (currently only SQL Server) to entities.  
 
@@ -7,5 +7,5 @@ Converts SQL Script (currently only SQL Server) to entities.
 ### How to
 ```sh
 npm i
-node sql2entity.js <sqlscript.sql> <package/namespace>
+node code-gen.js <sqlscript.sql> <package/namespace>
 ```
