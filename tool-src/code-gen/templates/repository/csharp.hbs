@@ -1,0 +1,78 @@
+using System;
+using System.Linq;
+
+namespace {{namespace.namespacePascalCase}}
+{
+    public sealed class {{className.pascalCase}}Repository : AbstractRepository<{{className.pascalCase}}>, I{{className.pascalCase}}Repository
+    {
+        // TODO summary {{className.pascalCase}}Repository constructor
+        /// <inheritdoc/>
+        public {{className.pascalCase}}Repository(DatabaseConnector dbConnector) : base(dbConnector) { }
+
+        // TODO summary {{className.pascalCase}}Repository.Delete
+        /// <inheritdoc/>
+        public override int Delete({{className.pascalCase}} entity)
+        {
+            // TODO implement {{className.pascalCase}}Repository.Delete by entity
+            //return Delete(entity.{{className.pascalCase}}Id);
+        }
+
+        // TODO summary {{className.pascalCase}}Repository.Delete
+        /// <inheritdoc/>
+        public override int Delete(object id)
+        {
+            // TODO implement {{className.pascalCase}}Repository.Delete by id
+            throw new NotImplementedException();
+        }
+
+        // TODO summary {{className.pascalCase}}Repository.GetById
+        /// <inheritdoc/>
+        public override {{className.pascalCase}} GetById(object id)
+        {
+            string sql = @" SELECT
+                            {{#each fields}}
+                              {{fieldName.pascalCase}}{{#if isClassReference}} AS '{{type.pascalCase}}.{{fieldName.pascalCase}}Id'{{/if}}{{#unless @last}},{{/unless}}
+                            {{/each}}
+                            FROM pacc.{{className.pascalCase}}
+                            WHERE {{className.pascalCase}}Id = @{{className.pascalCase}}Id";
+
+            {{className.pascalCase}} entity = DbConnector.ExecuteReader<{{className.pascalCase}}>(sql, new { {{className.pascalCase}}Id = id }).FirstOrDefault();
+
+            if (entity == null) throw new DatabaseException(DatabaseException.CreateGetByIdExceptionMessage("{{className.pascalCase}}", id));
+
+            return entity;
+        }
+
+        // TODO summary {{className.pascalCase}}Repository.Insert
+        /// <inheritdoc/>
+        public override {{className.pascalCase}} Insert({{className.pascalCase}} entity)
+        {
+            string sql = @"INSERT INTO pacc.{{className.pascalCase}} (
+                          {{#each fields}}
+                            {{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}}{{#unless @last}},{{/unless}}
+                          {{/each}}
+                         ) VALUES(
+                           {{#each fields}}
+                             @{{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}}{{#unless @last}},{{/unless}}
+                           {{/each}}
+                         );
+                         SELECT CAST(SCOPE_IDENTITY() AS BIGINT)";
+
+            entity.Id = DbConnector.ExecuteScalar<long>(sql, new {
+              {{#each fields}}
+                {{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}} = entity.{{#if isClassReference}}{{type.pascalCase}}.{{fieldName.pascalCase}}Id{{else}}{{fieldName.pascalCase}}{{/if}}{{#unless @last}},{{/unless}}
+              {{/each}}
+            });
+
+            return entity;
+        }
+
+        // TODO summary {{className.pascalCase}}Repository.Update
+        /// <inheritdoc/>
+        public override int Update({{className.pascalCase}} entity)
+        {
+            // TODO implement {{className.pascalCase}}Repository.Update
+            throw new NotImplementedException();
+        }
+    }
+}
