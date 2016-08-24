@@ -2,7 +2,7 @@
 
 Converts SQL Script (currently only SQL Server) to entities.  
 
-> Supports Java, C#, JavaScript (ECMA6) and Go Lang.
+> Generates Java, C#, JavaScript (ECMA6) and Go Lang code.
 
 ### How to
 ```sh
