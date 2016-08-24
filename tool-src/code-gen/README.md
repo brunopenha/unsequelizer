@@ -9,8 +9,8 @@ Converts SQL Script (currently only SQL Server) to entities.
 npm i
 node code-gen.js <sqlscript.sql> <entities package/namespace> <repositories package/namespace>
 ```
-
-Example
+  
+Example:
 ```sh
 npm i
 node code-gen.js create-tables.sql com.github.notanyfoolstools.unsequelizer.models com.github.notanyfoolstools.unsequelizer.repositories
