@@ -7,5 +7,11 @@ Converts SQL Script (currently only SQL Server) to entities.
 ### How to
 ```sh
 npm i
-node code-gen.js <sqlscript.sql> <package/namespace>
+node code-gen.js <sqlscript.sql> <entities package/namespace> <repositories package/namespace>
+```
+
+Example
+```sh
+npm i
+node code-gen.js create-tables.sql com.github.notanyfoolstools.unsequelizer.models com.github.notanyfoolstools.unsequelizer.repositories
 ```
