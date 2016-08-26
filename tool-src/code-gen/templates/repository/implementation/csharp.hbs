@@ -1,3 +1,6 @@
+{{#each dependencies}}
+using {{namespace.namespacePascalCase}};
+{{/each}}
 using System;
 using System.Linq;
 
@@ -31,7 +34,7 @@ namespace {{namespace.namespacePascalCase}}
         {
             string sql = @" SELECT
                             {{#each fields}}
-                              {{fieldName.pascalCase}}{{#if isClassReference}} AS '{{type.pascalCase}}.{{fieldName.pascalCase}}Id'{{/if}}{{#unless @last}},{{/unless}}
+                              {{fieldName.pascalCase}}{{#if isClassReference}}Id AS '{{type.pascalCase}}.{{fieldName.pascalCase}}Id'{{/if}}{{#unless @last}},{{/unless}}
                             {{/each}}
                             FROM pacc.{{className.pascalCase}}
                             WHERE {{className.pascalCase}}Id = @{{className.pascalCase}}Id";
@@ -58,7 +61,7 @@ namespace {{namespace.namespacePascalCase}}
                          );
                          SELECT CAST(SCOPE_IDENTITY() AS BIGINT)";
 
-            entity.Id = DbConnector.ExecuteScalar<long>(sql, new {
+            entity.{{className.pascalCase}}Id = DbConnector.ExecuteScalar<long>(sql, new {
               {{#each fields}}
                 {{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}} = entity.{{#if isClassReference}}{{type.pascalCase}}.{{fieldName.pascalCase}}Id{{else}}{{fieldName.pascalCase}}{{/if}}{{#unless @last}},{{/unless}}
               {{/each}}

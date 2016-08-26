@@ -1,3 +1,7 @@
+{{#each dependencies}}
+import {{namespace.namespacePascalCase}};
+{{/each}}
+
 package {{namespace.namespaceLowerCase}};
 {
     /** {{className.pascalCase}}

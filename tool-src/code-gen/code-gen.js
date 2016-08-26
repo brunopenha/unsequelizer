@@ -10,11 +10,19 @@ const changeCase = require('change-case')
 const sqlServerParse = require('./parsers/sql-server-parser')
 const DIST_FOLDER_PATH = 'dist-entities/'
 const classes = require('./classes')
+const commander = require('commander');
 
 const LanguageDefinitions = classes.LanguageDefinitions
 const ClassField = classes.ClassField
 const Class = classes.Class
 const File = classes.File
+
+commander
+  .version('0.0.1')
+  .option('-r, --repository-interface-namespace [value]', 'Repository interfaces namespace')
+  .option('-m, --model-namespace [value]', 'Models namespace')
+  .option('-R, --repository-implementation-namespace [value]', 'Repository interfaces namespace')
+  .parse(process.argv);
 
 
 const aggregators = {}
@@ -150,7 +158,7 @@ function generateEntitiesFiles(classes) {
         const languageOutputFolder = DIST_FOLDER_PATH + language.folderName + '/entities/';
 
         fs.readFile('templates/entity/' + language.folderName + '.hbs', 'utf8', (err, template) => {
-            if (err) return console.log(err)
+            if (err) return console.log('Cound not find', language.name, 'entity template');
 
             rimraf(languageOutputFolder, ['rmdir'], err => {
                 if (err) return console.log(err)
@@ -163,7 +171,7 @@ function generateEntitiesFiles(classes) {
                     classes.forEach(classDefinition => {
                         if (!classDefinition.isAssociative) {
                           const languageClass = classDefinition.cloneForLanguage(language)
-                          languageClass.namespace = entitiesNamespace
+                          languageClass.namespace = modelsNamespace
                           const file = new File(languageOutputFolder, changeCase.pascalCase(languageClass.className) + language.fileExtension, languageWriter(languageClass))
 
                           fs.writeFile(file.path + file.name, file.content, err => {
@@ -180,14 +188,15 @@ function generateEntitiesFiles(classes) {
     }
 }
 
-function generateRepositoriesFiles(classes) {
+function generateRepositoryImplementationFiles(classes) {
 
     for (let languageName in BUILTIN_LANGUAGE_DEFINITIONS) {
         const language = BUILTIN_LANGUAGE_DEFINITIONS[languageName]
-        const languageOutputFolder = DIST_FOLDER_PATH + language.folderName + '/repositories/';
+        const languageOutputFolder = DIST_FOLDER_PATH + language.folderName + '/repositories/implementations/';
 
-        fs.readFile('templates/repository/' + language.folderName + '.hbs', 'utf8', (err, template) => {
-            if (err) return console.log(err)
+        fs.readFile('templates/repository/implementation/' + language.folderName + '.hbs', 'utf8', (err, template) => {
+            if (err) return console.log('Cound not find', language.name, 'repository implementation template');
+
             rimraf(languageOutputFolder, ['rmdir'], err => {
                 if (err) return console.log(err)
 
@@ -199,8 +208,8 @@ function generateRepositoriesFiles(classes) {
                     classes.forEach(classDefinition => {
                         if (!classDefinition.isAssociative) {
                           const languageClass = classDefinition.cloneForLanguage(language)
-                          languageClass.namespace = repositoriesNamespace
-                          const file = new File(languageOutputFolder, changeCase.pascalCase(languageClass.className) + language.fileExtension, languageWriter(languageClass))
+                          languageClass.namespace = repositoryImplementationsNamespace
+                          const file = new File(languageOutputFolder, changeCase.pascalCase(languageClass.className) + 'Repository' + language.fileExtension, languageWriter(languageClass))
 
                           fs.writeFile(file.path + file.name, file.content, err => {
                               if (err) {
@@ -215,6 +224,43 @@ function generateRepositoriesFiles(classes) {
         })
     }
 }
+
+function generateRepositoryInterfaceFiles(classes) {
+
+      for (let languageName in BUILTIN_LANGUAGE_DEFINITIONS) {
+          const language = BUILTIN_LANGUAGE_DEFINITIONS[languageName]
+          const languageOutputFolder = DIST_FOLDER_PATH + language.folderName + '/repositories/interfaces/';
+
+          fs.readFile('templates/repository/interface/' + language.folderName + '.hbs', 'utf8', (err, template) => {
+              if (err) return console.log('Cound not find', language.name, 'repository interface template');
+
+              rimraf(languageOutputFolder, ['rmdir'], err => {
+                  if (err) return console.log(err)
+
+                  mkdirp(languageOutputFolder, (err) => {
+                      if (err) return console.error(err)
+
+                      const languageWriter = Handlebars.compile(template)
+
+                      classes.forEach(classDefinition => {
+                          if (!classDefinition.isAssociative) {
+                            const languageClass = classDefinition.cloneForLanguage(language)
+                            languageClass.namespace = repositoryInterfacesNamespace
+                            const file = new File(languageOutputFolder, 'I' + changeCase.pascalCase(languageClass.className) + 'Repository' + language.fileExtension, languageWriter(languageClass))
+
+                            fs.writeFile(file.path + file.name, file.content, err => {
+                                if (err) {
+                                    return console.log(file.path, err);
+                                }
+                                console.log('Wrote', language.name, file.path + file.name)
+                            })
+                          }
+                      })
+                  })
+              })
+          })
+      }
+  }
 
 
 // DICTIONARIES -------------------------------------
@@ -224,10 +270,10 @@ function generateRepositoriesFiles(classes) {
 const SQL_TO_CSHARP_DICTIONARY = {
     "BIGINT": 'long',
     "BINARY": 'Byte[]',
-    "BIT": 'boolean',
+    "BIT": 'bool',
     "BLOB": 'byte[]',
-    "BOOL": 'boolean',
-    "BOOLEAN": 'boolean',
+    "BOOL": 'bool',
+    "BOOLEAN": 'bool',
     "CHAR": '<CHAR>',
     "CURRENCY": 'decimal',
     "CURSOR": '<CURSOR>',
@@ -264,7 +310,7 @@ const SQL_TO_CSHARP_DICTIONARY = {
     "TINYTEXT": 'string',
     "UNIQUEIDENTIFIER": 'Guid',
     "UUID": 'Guid',
-    "VARBINARY": 'boolean',
+    "VARBINARY": 'bool',
     "VARCHAR": 'string',
     "YEAR": 'DateTime'
 }
@@ -380,8 +426,9 @@ const BUILTIN_LANGUAGE_DEFINITIONS = {
 }
 
 
-let entitiesNamespace = process.argv[3] || 'Models'
-let repositoriesNamespace = process.argv[4] || 'Repositories'
+let modelsNamespace = commander.modelNamespace || 'Models'
+let repositoryImplementationsNamespace = commander.repositoryImplementationNamespace || 'Repositories.Implementations'
+let repositoryInterfacesNamespace = commander.repositoryInterfaceNamespace || 'Repositories.Interfaces'
 
 fs.readFile(process.argv[2], 'utf8', (err, data) => {
 
@@ -406,5 +453,6 @@ fs.readFile(process.argv[2], 'utf8', (err, data) => {
     })
 
     generateEntitiesFiles(classes)
-    generateRepositoriesFiles(classes)
+    generateRepositoryInterfaceFiles(classes)
+    generateRepositoryImplementationFiles(classes)
 })

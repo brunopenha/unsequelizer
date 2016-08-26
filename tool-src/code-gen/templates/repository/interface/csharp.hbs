@@ -1,0 +1,11 @@
+{{#each dependencies}}
+using {{namespace.namespacePascalCase}};
+{{/each}}
+
+namespace {{namespace.namespacePascalCase}}
+{
+    public interface I{{className.pascalCase}}Repository : IRepository<{{className.pascalCase}}>
+    {
+
+    }
+}
