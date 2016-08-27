@@ -1,0 +1,136 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace {{namespace.namespacePascalCase}}
+{
+
+    /// <summary>
+    /// Summary description for {{className.pascalCase}}
+    /// </summary>
+    [TestClass]
+    public sealed class {{className.pascalCase}}RepositoryTest
+    {
+        DatabaseConnector _databaseConnector;
+        I{{className.pascalCase}}Repository _{{className.camelCase}}Repository;
+        {{#each fields}}
+            {{#if isClassReference}}
+        I{{type.pascalCase}}Repository _{{type.camelCase}}Repository;
+            {{/if}}
+        {{/each}}
+
+        public {{className.pascalCase}}RepositoryTest()
+        {
+            //
+            // TODO: Add constructor logic here
+            //
+        }
+
+        #region Properties
+
+        private TestContext testContextInstance;
+
+        /// <summary>
+        /// Gets or sets the test context which provides
+        /// information about and functionality for the current test run.
+        /// </summary>
+        public TestContext TestContext
+        {
+            get
+            {
+                return testContextInstance;
+            }
+            set
+            {
+                testContextInstance = value;
+            }
+        }
+
+        #endregion
+
+        #region Additional test attributes
+
+        //
+        // You can use the following additional attributes as you write your tests:
+        //
+        // Use ClassInitialize to run code before running the first test in the class
+        // [ClassInitialize()]
+        // public static void MyClassInitialize(TestContext testContext) { }
+        //
+        // Use ClassCleanup to run code after all tests in a class have run
+        // [ClassCleanup()]
+        // public static void MyClassCleanup() { }
+        //
+        // Use TestInitialize to run code before running each test
+        // [TestInitialize()]
+        // public void MyTestInitialize() { }
+        //
+        // Use TestCleanup to run code after each test has run
+        // [TestCleanup()]
+        // public void MyTestCleanup() { }
+        //
+
+        [TestInitialize()]
+        public void TestInitialize()
+        {
+            _databaseConnector = new DatabaseConnector(Utils.DbConnectionString);
+            _databaseConnector.BeginTransaction();
+            _{{className.camelCase}}Repository = new {{className.pascalCase}}Repository(_databaseConnector);
+            {{#each fields}}
+                {{#if isClassReference}}
+            _{{type.camelCase}}Repository = new {{type.pascalCase}}Repository(_databaseConnector);
+                {{/if}}
+            {{/each}}
+        }
+
+        [TestCleanup()]
+        public void TestCleanup()
+        {
+            _databaseConnector.Rollback();
+            _databaseConnector.Dispose();
+        }
+        #endregion
+
+        #region Tests
+
+        [TestMethod]
+        [TestCategory("RepositoryTest")]
+        public void InsertTest()
+        {
+            {{#each fields}}
+                {{#if isClassReference}}
+            {{type.pascalCase}} {{type.camelCase}}Dummy = DummyFactory.Dummy{{type.pascalCase}}();
+                {{/if}}
+            {{/each}}
+
+            {{className.pascalCase}} requestedEntity = DummyFactory.Dummy{{className.pascalCase}}();
+            {{className.pascalCase}} retrievedEntity = null;
+
+            {{#each fields}}
+                {{#if isClassReference}}
+            requestedEntity.{{fieldName.pascalCase}} = {{type.camelCase}}Dummy;
+                {{/if}}
+            {{/each}}
+
+            requestedEntity = _{{className.camelCase}}Repository.Insert(requestedEntity);
+            retrievedEntity = _{{className.camelCase}}Repository.GetById(requestedEntity.{{className.pascalCase}}Id);
+
+            Assert.AreNotEqual(0, retrievedEntity.{{className.pascalCase}}Id);
+          {{#each fields}}
+            {{#if isClassReference}}
+              {{#if isNullable}}
+
+            Assert.AreEqual(
+                requestedEntity.{{fieldName.pascalCase}} != null ? (long?) requestedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id : null,
+                retrievedEntity.{{fieldName.pascalCase}} != null ? (long?) retrievedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id : null
+            );
+              {{else}}
+
+            Assert.AreEqual(requestedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id, retrievedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id);
+              {{/if}}
+            {{else}}
+            Assert.AreEqual(requestedEntity.{{fieldName.pascalCase}}, retrievedEntity.{{fieldName.pascalCase}});
+            {{/if}}
+          {{/each}}
+
+        #endregion
+    }
+}

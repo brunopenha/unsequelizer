@@ -16,8 +16,10 @@ namespace {{namespace.namespacePascalCase}}
         /// <inheritdoc/>
         public override int Delete({{className.pascalCase}} entity)
         {
-            // TODO implement {{className.pascalCase}}Repository.Delete by entity
-            //return Delete(entity.{{className.pascalCase}}Id);
+            string sql = @" DELETE FROM schema.{{className.pascalCase}}
+                            WHERE {{className.pascalCase}}Id = @{{className.pascalCase}}Id";
+
+            return DbConnector.ExecuteNonQuery(sql, new { {{className.pascalCase}}Id = entity.{{className.pascalCase}}Id });
         }
 
         // TODO summary {{className.pascalCase}}Repository.Delete
@@ -34,9 +36,9 @@ namespace {{namespace.namespacePascalCase}}
         {
             string sql = @" SELECT
                             {{#each fields}}
-                              {{fieldName.pascalCase}}{{#if isClassReference}}Id AS '{{type.pascalCase}}.{{fieldName.pascalCase}}Id'{{/if}}{{#unless @last}},{{/unless}}
+                              {{fieldName.pascalCase}}{{#if isClassReference}}Id AS '{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id'{{/if}}{{#unless @last}},{{/unless}}
                             {{/each}}
-                            FROM pacc.{{className.pascalCase}}
+                            FROM schema.{{className.pascalCase}}
                             WHERE {{className.pascalCase}}Id = @{{className.pascalCase}}Id";
 
             {{className.pascalCase}} entity = DbConnector.ExecuteReader<{{className.pascalCase}}>(sql, new { {{className.pascalCase}}Id = id }).FirstOrDefault();
@@ -50,7 +52,7 @@ namespace {{namespace.namespacePascalCase}}
         /// <inheritdoc/>
         public override {{className.pascalCase}} Insert({{className.pascalCase}} entity)
         {
-            string sql = @"INSERT INTO pacc.{{className.pascalCase}} (
+            string sql = @"INSERT INTO schema.{{className.pascalCase}} (
                           {{#each fields}}
                             {{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}}{{#unless @last}},{{/unless}}
                           {{/each}}
@@ -63,7 +65,7 @@ namespace {{namespace.namespacePascalCase}}
 
             entity.{{className.pascalCase}}Id = DbConnector.ExecuteScalar<long>(sql, new {
               {{#each fields}}
-                {{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}} = entity.{{#if isClassReference}}{{type.pascalCase}}.{{fieldName.pascalCase}}Id{{else}}{{fieldName.pascalCase}}{{/if}}{{#unless @last}},{{/unless}}
+                {{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}} = entity.{{#if isClassReference}}{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id{{else}}{{fieldName.pascalCase}}{{/if}}{{#unless @last}},{{/unless}}
               {{/each}}
             });
 

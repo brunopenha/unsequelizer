@@ -1,16 +1,5 @@
 const changeCase = require('change-case')
 
-class LanguageDefinitions {
-    constructor(name, folderName, fileExtension, sqlDictionary, nullExceptionDictionary) {
-        this.name = name
-        this.folderName = folderName
-        this.fileExtension = fileExtension
-        this.sqlDictionary = sqlDictionary
-        this.nullExceptionDictionary = nullExceptionDictionary
-    }
-}
-exports.LanguageDefinitions = LanguageDefinitions;
-
 class File {
     constructor(path, name, content, language) {
         this.path = path
