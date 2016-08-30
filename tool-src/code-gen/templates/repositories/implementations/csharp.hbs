@@ -10,7 +10,7 @@ namespace {{namespace.namespacePascalCase}}
     {
         // TODO summary {{className.pascalCase}}Repository constructor
         /// <inheritdoc/>
-        public {{className.pascalCase}}Repository(DatabaseConnector dbConnector) : base(dbConnector) { }
+        public {{className.pascalCase}}Repository(DatasupertypeConnector dbConnector) : supertype(dbConnector) { }
 
         // TODO summary {{className.pascalCase}}Repository.Delete
         /// <inheritdoc/>
@@ -36,14 +36,14 @@ namespace {{namespace.namespacePascalCase}}
         {
             string sql = @" SELECT
                             {{#each fields}}
-                              {{fieldName.pascalCase}}{{#if isClassReference}}Id AS '{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id'{{/if}}{{#unless @last}},{{/unless}}
+                              {{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id AS '{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id'{{/if}}{{#unless @last}},{{/unless}}
                             {{/each}}
                             FROM schema.{{className.pascalCase}}
                             WHERE {{className.pascalCase}}Id = @{{className.pascalCase}}Id";
 
             {{className.pascalCase}} entity = DbConnector.ExecuteReader<{{className.pascalCase}}>(sql, new { {{className.pascalCase}}Id = id }).FirstOrDefault();
 
-            if (entity == null) throw new DatabaseException(DatabaseException.CreateGetByIdExceptionMessage("{{className.pascalCase}}", id));
+            if (entity == null) throw new DatasupertypeException(DatasupertypeException.CreateGetByIdExceptionMessage("{{className.pascalCase}}", id));
 
             return entity;
         }
@@ -54,18 +54,18 @@ namespace {{namespace.namespacePascalCase}}
         {
             string sql = @"INSERT INTO schema.{{className.pascalCase}} (
                           {{#each fields}}
-                            {{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}}{{#unless @last}},{{/unless}}
+                            {{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}{{#unless @last}},{{/unless}}
                           {{/each}}
                          ) VALUES(
                            {{#each fields}}
-                             @{{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}}{{#unless @last}},{{/unless}}
+                             @{{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}{{#unless @last}},{{/unless}}
                            {{/each}}
                          );
                          SELECT CAST(SCOPE_IDENTITY() AS BIGINT)";
 
             entity.{{className.pascalCase}}Id = DbConnector.ExecuteScalar<long>(sql, new {
               {{#each fields}}
-                {{fieldName.pascalCase}}{{#if isClassReference}}Id{{/if}} = entity.{{#if isClassReference}}{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id{{else}}{{fieldName.pascalCase}}{{/if}}{{#unless @last}},{{/unless}}
+                {{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}} = entity.{{#if type.isDomainClassType}}{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id{{else}}{{fieldName.pascalCase}}{{/if}}{{#unless @last}},{{/unless}}
               {{/each}}
             });
 

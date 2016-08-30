@@ -47,46 +47,51 @@ exports.TableConstraint = TableConstraint
 
 
 class Class {
-    constructor(className, namespace, fields, base, dependencies, isAssociative, access) {
+    constructor(className, isDomainClassType, namespace, fields, supertype, dependencies, isAssociative, access) {
         this.className = className
-        this.base = base
+        this.supertype = supertype
         this.namespace = namespace
         this.dependencies = dependencies
         this.fields = fields
         this.isAssociative = isAssociative
         this.access = access
+        this.isDomainClassType = isDomainClassType
     }
 
-    set className(className) { this._className = className }
+    set className(value) { this._className = value }
     get className() { return new MultiCase(this._className) }
 
-    set namespace(className) { this._namespace = className }
+    set namespace(value) { this._namespace = value }
     get namespace() { return new MultiCase(this._namespace) }
 
-    set base(base) { this._base = base || null }
-    get base() { return this._base ? new MultiCase(this._base) : null }
+    // TODO better supertype resolution
+    set supertype(value) { this._supertype = value || null }
+    get supertype() { return this._supertype }
 
-    set isAssociative(isAssociative) { this._isAssociative = !! isAssociative }
+    set isAssociative(value) { this._isAssociative = !! value }
     get isAssociative() { return this._isAssociative }
 
-    set access(access) { this._access = access }
+    set isDomainClassType(value) { this._isDomainClassType = !! value }
+    get isDomainClassType() { return this._isDomainClassType }
+
+    set access(value) { this._access = value }
     get access() { return access ? new MultiCase(this._access) : null }
 
-    set dependencies(dependencies) { this._dependencies = Array.isArray(dependencies) ? dependencies : [] }
+    set dependencies(value) { this._dependencies = Array.isArray(value) ? value : [] }
     get dependencies () { return this._dependencies.slice(0) /* array clone, not deep */ }
 
-    set fields(fields) { this._fields = Array.isArray(fields) ? fields : [] }
+    set fields(value) { this._fields = Array.isArray(value) ? value : [] }
     get fields() { return this._fields.map(field => field.clone()) }
 
-    clone() { return new Class(this._className, this._namespace, this.fields, this._base, this.dependencies,  this._isAssociative,  this._access) }
+    clone() { return new Class(this._className, this._isDomainClassType, this._namespace, this.fields, this._supertype, this.dependencies,  this._isAssociative,  this._access) }
 
-    cloneForLanguage(language) {
+    cloneForLanguage(language) { // TODO create Class mapper for cleaner class definition
         const clone = this.clone()
         clone.namespace = clone._namespace || language.defaultNamespace
         if (language.sqlDictionary) {
-           clone._fields.forEach(field => {
-             if (!field.isClassReference) field.type = language.sqlDictionary[field.type.upperCase.trim()] || '<Type undefined in ' + language.name + ' SQL dictionary>'
-             if (language.nullExceptionDictionary && language.nullExceptionDictionary.indexOf(field.type.toString()) !== -1) field.isNullable = false
+           clone./*do not remove this underscore*/_fields.forEach(field => {
+             if (!field.type.isDomainClassType) field.type = new Class(language.sqlDictionary[field.type.className.upperCase.trim()] || 'UNDEFINED_SQL_TYPE_MAPPING')
+             if (language.nullExceptionDictionary && language.nullExceptionDictionary.indexOf(field.type.className.toString()) !== -1) field.isNullable = false
           })
         }
         return clone
@@ -95,37 +100,30 @@ class Class {
 exports.Class = Class
 
 class ClassField {
-    constructor(fieldName, type, isNullable, isCollection, isClassReference, access) {
+    constructor(fieldName, type, isNullable, isCollection, access) {
         this.fieldName = fieldName
         this.type = type
         this.isNullable = isNullable
         this.isCollection = isCollection
-        this.isClassReference = isClassReference
-
-        // this.isAggregated = isAggregated
-        // this.isAssociative =  isAssociative
         this.access = access
     }
 
-    set fieldName(fieldName) { this._fieldName = fieldName }
+    set fieldName(value) { this._fieldName = value }
     get fieldName() { return new MultiCase(this._fieldName) }
 
-    set type(type) { this._type =  type || 'void' }
-    get type() { return new MultiCase(this._type) }
+    set type(value) { this._type = value }
+    get type() { return this._type }
 
-    set isClassReference(isClassReference) { this._isClassReference = !! isClassReference }
-    get isClassReference() { return this._isClassReference }
-
-    set isNullable(isNullable) { this._isNullable = !! isNullable }
+    set isNullable(value) { this._isNullable = !! value }
     get isNullable() { return this._isNullable }
 
-    set isCollection(isCollection) { this._isCollection = !! isCollection }
+    set isCollection(value) { this._isCollection = !! value }
     get isCollection() { return this._isCollection }
 
-    set access(access) { this._access = access }
-    get access() { return new MultiCase(this._access) }
+    set access(value) { this._access = value }
+    get access() { return access ? new MultiCase(this._access) : null }
 
-    clone() { return new ClassField(this._fieldName, this._type, this._isNullable, this._isCollection, this._isClassReference, this._access) }
+    clone() { return new ClassField(this._fieldName, this._type, this._isNullable, this._isCollection, this._access) }
 }
 exports.ClassField = ClassField
 
@@ -136,10 +134,11 @@ class MultiCase {
 
   clone() { return new MultiCase(this.word) }
 
-  set word(word) { this._word = String(word) }
+  set word(value) { this._word = String(value) }
   get word() { return this._word }
 
-  toString() { return this.word }
+  toString() { return this._word }
+  valueOf() { return this._word }
 
   get paramCase() { return changeCase.paramCase(this.word) }
 

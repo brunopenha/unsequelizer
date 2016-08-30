@@ -1,4 +1,6 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+{{#each dependencies}}
+using {{namespace.namespacePascalCase}};
+{{/each}}
 
 namespace {{namespace.namespacePascalCase}}
 {
@@ -9,11 +11,11 @@ namespace {{namespace.namespacePascalCase}}
     [TestClass]
     public sealed class {{className.pascalCase}}RepositoryTest
     {
-        DatabaseConnector _databaseConnector;
+        DatasupertypeConnector _datasupertypeConnector;
         I{{className.pascalCase}}Repository _{{className.camelCase}}Repository;
         {{#each fields}}
-            {{#if isClassReference}}
-        I{{type.pascalCase}}Repository _{{type.camelCase}}Repository;
+            {{#if type.isDomainClassType}}
+        I{{type.className.pascalCase}}Repository _{{type.className.camelCase}}Repository;
             {{/if}}
         {{/each}}
 
@@ -71,12 +73,12 @@ namespace {{namespace.namespacePascalCase}}
         [TestInitialize()]
         public void TestInitialize()
         {
-            _databaseConnector = new DatabaseConnector(Utils.DbConnectionString);
-            _databaseConnector.BeginTransaction();
-            _{{className.camelCase}}Repository = new {{className.pascalCase}}Repository(_databaseConnector);
+            _datasupertypeConnector = new DatasupertypeConnector(Utils.DbConnectionString);
+            _datasupertypeConnector.BeginTransaction();
+            _{{className.camelCase}}Repository = new {{className.pascalCase}}Repository(_datasupertypeConnector);
             {{#each fields}}
-                {{#if isClassReference}}
-            _{{type.camelCase}}Repository = new {{type.pascalCase}}Repository(_databaseConnector);
+                {{#if type.isDomainClassType}}
+            _{{type.className.camelCase}}Repository = new {{type.className.pascalCase}}Repository(_datasupertypeConnector);
                 {{/if}}
             {{/each}}
         }
@@ -84,8 +86,8 @@ namespace {{namespace.namespacePascalCase}}
         [TestCleanup()]
         public void TestCleanup()
         {
-            _databaseConnector.Rollback();
-            _databaseConnector.Dispose();
+            _datasupertypeConnector.Rollback();
+            _datasupertypeConnector.Dispose();
         }
         #endregion
 
@@ -95,41 +97,53 @@ namespace {{namespace.namespacePascalCase}}
         [TestCategory("RepositoryTest")]
         public void InsertTest()
         {
+            // Instantiate test doubles
             {{#each fields}}
-                {{#if isClassReference}}
-            {{type.pascalCase}} {{type.camelCase}}Dummy = DummyFactory.Dummy{{type.pascalCase}}();
+                {{#if type.isDomainClassType}}
+            {{type.className.pascalCase}} {{type.className.camelCase}}Dummy = DummyFactory.Dummy{{type.className.pascalCase}}();
                 {{/if}}
             {{/each}}
 
             {{className.pascalCase}} requestedEntity = DummyFactory.Dummy{{className.pascalCase}}();
             {{className.pascalCase}} retrievedEntity = null;
 
+            // Insert aggregated data
             {{#each fields}}
-                {{#if isClassReference}}
-            requestedEntity.{{fieldName.pascalCase}} = {{type.camelCase}}Dummy;
+                {{#if type.isDomainClassType}}
+            _{{type.className.camelCase}}Repository.Insert({{type.className.camelCase}}Dummy);
                 {{/if}}
             {{/each}}
 
+            // Assign aggregated data
+            {{#each fields}}
+                {{#if type.isDomainClassType}}
+            requestedEntity.{{fieldName.pascalCase}} = {{type.className.camelCase}}Dummy;
+                {{/if}}
+            {{/each}}
+
+            // Insert tested model
             requestedEntity = _{{className.camelCase}}Repository.Insert(requestedEntity);
             retrievedEntity = _{{className.camelCase}}Repository.GetById(requestedEntity.{{className.pascalCase}}Id);
 
             Assert.AreNotEqual(0, retrievedEntity.{{className.pascalCase}}Id);
           {{#each fields}}
-            {{#if isClassReference}}
+            {{#if type.isDomainClassType}}
               {{#if isNullable}}
-
+            // Nullable reference
             Assert.AreEqual(
                 requestedEntity.{{fieldName.pascalCase}} != null ? (long?) requestedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id : null,
                 retrievedEntity.{{fieldName.pascalCase}} != null ? (long?) retrievedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id : null
             );
               {{else}}
 
+            // Non-nullable reference
             Assert.AreEqual(requestedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id, retrievedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id);
               {{/if}}
             {{else}}
             Assert.AreEqual(requestedEntity.{{fieldName.pascalCase}}, retrievedEntity.{{fieldName.pascalCase}});
             {{/if}}
           {{/each}}
+        }
 
         #endregion
     }

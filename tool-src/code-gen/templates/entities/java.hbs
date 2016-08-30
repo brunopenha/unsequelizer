@@ -1,33 +1,32 @@
+package {{namespace.namespaceLowerCase}};
+
 {{#each dependencies}}
 import {{namespace.namespacePascalCase}};
 {{/each}}
 
-package {{namespace.namespaceLowerCase}};
+/** {{className.pascalCase}}
+ ** TODO: write JavaDoc **/
+public class {{className.pascalCase}} {{#if supertype}}extends {{supertype.className.pascalCase}}{{/if}}
 {
+  {{#each fields}}
+    private {{#if isCollection}}List<{{/if}}{{#if type.isDomainClassType}}{{type.className.pascalCase}}{{else}}{{{type.className}}}{{/if}}{{#if isCollection}}>{{/if}} {{fieldName.camelCase}}{{#if isCollection}}s{{/if}};
+  {{/each}}
+
     /** {{className.pascalCase}}
-     ** TODO: write JavaDoc **/
-    public class {{className.pascalCase}} {{#if base}}extends {{base.pascalCase}}{{/if}}
-    {
-      {{#each fields}}
-        private {{#if isCollection}}List<{{/if}}{{#if isClassReference}}{{type.pascalCase}}{{else}}{{{type}}}{{/if}}{{#if isCollection}}>{{/if}} {{fieldName.camelCase}}{{#if isCollection}}s{{/if}};
-      {{/each}}
+     ** TODO: write constructor JavaDoc **/
+    public {{className.pascalCase}}() { }
+{{#each fields}}
 
-        /** {{className.pascalCase}}
-         ** TODO: write constructor JavaDoc **/
-        public {{className.pascalCase}}() { }
-    {{#each fields}}
-
-        /** set{{fieldName.pascalCase}}
-         ** TODO: write {{className.pascalCase}}.set{{fieldName.pascalCase}} JavaDoc **/
-        private void set{{fieldName.pascalCase}}({{#if isCollection}}List<{{/if}}{{#if isClassReference}}{{type.pascalCase}}{{else}}{{{type}}}{{/if}}{{#if isCollection}}>{{/if}} {{fieldName.camelCase}}{{#if isCollection}}s{{/if}}) {
-          this.{{fieldName.camelCase}} = {{fieldName.camelCase}};
-        }
-
-        /** get{{fieldName.pascalCase}}
-         ** TODO: write {{className.pascalCase}}.get{{fieldName.pascalCase}} JavaDoc **/
-        private {{#if isCollection}}List<{{/if}}{{#if isClassReference}}{{type.pascalCase}}{{else}}{{{type}}}{{/if}}{{#if isCollection}}>{{/if}} get{{fieldName.pascalCase}}{{#if isCollection}}s{{/if}}() {
-          return {{fieldName.camelCase}};
-        }
-    {{/each}}
+    /** set{{fieldName.pascalCase}}
+     ** TODO: write {{className.pascalCase}}.set{{fieldName.pascalCase}} JavaDoc **/
+    private void set{{fieldName.pascalCase}}({{#if isCollection}}List<{{/if}}{{#if type.isDomainClassType}}{{type.className.pascalCase}}{{else}}{{{type.className}}}{{/if}}{{#if isCollection}}>{{/if}} {{fieldName.camelCase}}{{#if isCollection}}s{{/if}}) {
+      this.{{fieldName.camelCase}} = {{fieldName.camelCase}};
     }
+
+    /** get{{fieldName.pascalCase}}
+     ** TODO: write {{className.pascalCase}}.get{{fieldName.pascalCase}} JavaDoc **/
+    private {{#if isCollection}}List<{{/if}}{{#if type.isDomainClassType}}{{type.className.pascalCase}}{{else}}{{{type.className}}}{{/if}}{{#if isCollection}}>{{/if}} get{{fieldName.pascalCase}}{{#if isCollection}}s{{/if}}() {
+      return {{fieldName.camelCase}};
+    }
+{{/each}}
 }

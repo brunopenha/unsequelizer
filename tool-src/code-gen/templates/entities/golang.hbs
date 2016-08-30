@@ -1,5 +1,5 @@
 type {{className.pascalCase}} struct {
 {{#each fields}}
-	{{fieldName.pascalCase}}			{{#if isClassReference}}*{{type.pascalCase}}{{else}}{{{type}}}{{/if}}
+	{{fieldName.camelCase}} {{#if type.isDomainClassType}}*{{type.className.pascalCase}}{{else}}{{{type.className}}}{{/if}}
 {{/each}}
 }

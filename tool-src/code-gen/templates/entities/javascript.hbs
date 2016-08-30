@@ -5,7 +5,7 @@ import {{namespace.pascalCase}} from {{namespace.namespacePascalCase}};
 /** {{className.pascalCase}}
  ** TODO: write script doc
  **/
-export class {{className.pascalCase}} {{#if base}}extends {{base.pascalCase}}{{/if}}
+export class {{className.pascalCase}} {{#if supertype}}extends {{supertype.className.pascalCase}}{{/if}}
 {
     constructor() { }
 {{#each fields}}

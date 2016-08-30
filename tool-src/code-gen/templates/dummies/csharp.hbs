@@ -1,0 +1,22 @@
+/// <summary>
+/// Creates a dummy of <see cref="{{className.pascalCase}}"/>.
+/// </summary>
+/// <returns>{{className.pascalCase}} instance with some random data.</returns>
+public static {{className.pascalCase}} Dummy{{className.pascalCase}}() {
+
+    {{className.pascalCase}} dummy = new {{className.pascalCase}}();
+
+{{#if supertype}}
+    {{supertype.className.pascalCase}} supertype = Dummy{{supertype.className.pascalCase}}();
+
+    {{#each supertype.fields}}
+    dummy.{{fieldName.pascalCase}} = supertype.{{fieldName.pascalCase}};
+    {{/each}}
+
+{{/if}}
+  {{#each fields}}
+    dummy.{{fieldName.pascalCase}} = Dummy{{type.className.pascalCase}}();
+  {{/each}}
+
+    return dummy;
+}

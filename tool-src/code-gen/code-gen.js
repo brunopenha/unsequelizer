@@ -7,19 +7,11 @@ const rimraf = require('rimraf')
 const changeCase = require('change-case')
 const sqlServerParse = require('./parsers/sql-server-parser')
 const classes = require('./classes')
-// const commander = require('commander')
 
 const ClassField = classes.ClassField
 const Class = classes.Class
 const File = classes.File
 const MultiCase = classes.MultiCase
-
-// commander
-//   .version('0.0.1')
-//   .option('-r, --repository-interface-namespace [value]', 'Repository interfaces namespace')
-//   .option('-m, --model-namespace [value]', 'Models namespace')
-//   .option('-R, --repository-implementation-namespace [value]', 'Repository interfaces namespace')
-//   .parse(process.argv)
 
 const DIST_FOLDER_PATH = 'dist-entities/'
 const TEMPLATE_FOLDER_PATH = 'templates/'
@@ -32,7 +24,6 @@ function aggregatorField(aggregator, field) {
   aggregators[aggregator] = fields
 }
 
-
 fs.readFile(process.argv[2], 'utf8', (err, data) =>
 {
     if (err) return console.log(err);
@@ -40,14 +31,29 @@ fs.readFile(process.argv[2], 'utf8', (err, data) =>
     const parsedData = sqlServerParse(data)
     const classes = [];
 
+    // Map table to classes
     if (parsedData) parsedData.forEach(table => classes.push(mapTable2Class(table)))
+
+    // Reiterate mapping supertypes
+    classes.forEach(targetClass => {
+
+      if (!targetClass.supertype) return;
+
+      const possibleSupertype = classes.find(possibleSupertype =>  possibleSupertype.className.snakeCase === targetClass.supertype.className.snakeCase)
+      if (possibleSupertype) targetClass.supertype = possibleSupertype
+
+      targetClass.fields.forEach(field => {
+        const possibleFieldType = classes.find(possibleFieldType => possibleFieldType.className.snakeCase === field.type.className.snakeCase)
+        if (possibleFieldType) field.type = possibleFieldType
+      })
+
+    })
 
     classes.forEach(classDefinition =>
     {
         // AGGREGATOR FIELD DASH
         for (let aggregator in aggregators)
         {
-            //console.log(aggregator , classDefinition.className.toString())
             if (aggregator === classDefinition.className.toString())
             {
                 const aggregatorFields = aggregators[aggregator]
@@ -60,11 +66,11 @@ fs.readFile(process.argv[2], 'utf8', (err, data) =>
     })
 
     PLATFORMS.forEach(language => {
-      if (language.isActive) for (var pack in language.packages) generate(pack, classes, language)
+      if (language.isActive) for (var pack in language.packages) generatePlatformFile(pack, classes, language)
     })
 })
 
-function generate(pack, classes, language) {
+function generatePlatformFile(pack, classes, language) {
 
     // PATH == PACKAGE NAME
     const languageOutputFolder = DIST_FOLDER_PATH + language.folderName + '/' + changeCase.pathCase(pack) +'/';
@@ -72,7 +78,8 @@ function generate(pack, classes, language) {
 
     fs.readFile(templatePath + language.folderName + '.hbs', 'utf8', (err, template) => {
 
-        if (err) return console.log('Cound not find', templatePath + language.folderName + '.hbs');
+        if (err) return console.log('COULD NOT FIND', templatePath + language.folderName + '.hbs');
+        else console.log('FOUND', templatePath + language.folderName + '.hbs');
 
         rimraf(languageOutputFolder, ['rmdir'], err => {
             if (err) return console.log(err)
@@ -83,18 +90,18 @@ function generate(pack, classes, language) {
                 const languageWriter = Handlebars.compile(template)
 
                 classes.forEach(classDefinition => {
-                    if (!classDefinition.isAssociative) {
-                      const languageClass = classDefinition.cloneForLanguage(language)
 
-                      languageClass.namespace = pack
+                    if (classDefinition.isAssociative) return;
 
-                      const file = new File(languageOutputFolder, Handlebars.compile(language.packages[pack])(new MultiCase(languageClass.className)), languageWriter(languageClass))
+                    const languageClass = classDefinition.cloneForLanguage(language)
 
-                      fs.writeFile(file.path + file.name, file.content, err => {
-                          if (err) return console.log(file.path, err);
-                          console.log('Wrote', language.name, file.path + file.name)
-                      })
-                    }
+                    languageClass.namespace = pack
+
+                    const file = new File(languageOutputFolder, Handlebars.compile(language.packages[pack])(new MultiCase(languageClass.className)), languageWriter(languageClass))
+
+                    fs.writeFile(file.path + file.name, file.content, err => {
+                        if (err) return console.log(file.path, err);
+                    })
                 })
             })
         })
@@ -139,10 +146,9 @@ function mapTable2Class(table) {
 
                 fields.push(new ClassField(
                       stripIdentifier(foreignKey), // fieldName
-                      constraint.referencedTable, // type
+                      new Class(constraint.referencedTable, true), // type
                       columns.find(column => column.name === foreignKey).isNullable, // isNullable?
-                      false, // isCollection
-                      true  // isClassReference
+                      false // isCollection
                 ))
               }
 
@@ -161,14 +167,12 @@ function mapTable2Class(table) {
     associatives.forEach(associative => {
       associatives.forEach(otherAssociative => {
         if (associative === otherAssociative) return;
-        //console.log(className, associative)
         aggregatorField(associative,
             new ClassField(
                 className + (associatives.length < 3 ? '' : '_' + otherAssociative), // fieldName
-                otherAssociative, // type
+                new Class(otherAssociative, true), // type
                 true, // isNullable?
-                true, // isCollection
-                true // isClassReference?
+                true // isCollection
             )
         )
       })
@@ -180,46 +184,13 @@ function mapTable2Class(table) {
   }).map(column => {
     return new ClassField(
         column.name, // fieldName
-        column.type, // type
+        new Class(column.type), // type
         column.isNullable, // isNullable?
-        false, // isCollection
-        false // isClassReference
+        false // isCollection
     )
   }).concat(fields)
 
-
-  // if (columns) columns.forEach(column => {
-  //
-  //     let isForeign = constraints.some(constraint => {
-  //         //console.log(constraint.type, constraint.type.toLowerCase() === 'foreign')
-  //         if (constraint.type.toLowerCase() === 'foreign') {
-  //             return constraint.keys.some(key => {
-  //                 if (constraint.referencedTable !== this.base) {
-  //                     aggregatorField(this.className.toString(),
-  //                         new ClassField(
-  //                             constraint.referencedTable, // fieldName
-  //                             constraint.referencedTable, // type
-  //                             true, // isNullable?
-  //                             true // isAggregated
-  //                         )
-  //                     )
-  //                 }
-  //                 return column.name.toLowerCase() === key.toLowerCase();
-  //
-  //             })
-  //         }
-  //     })
-  //
-  //     if (isForeign) return;
-  //
-  //     fields.push(new ClassField(
-  //         column.name, // fieldName
-  //         column.type, // type
-  //         false, // (/\bNOT\W+NULL\b/gim).test(column.properties), // isNullable?
-  //         false // isAggregated
-  //     ))
-  // })
-  return new Class(className, null, fields, possibleSupertype, null, associatives.length);
+  return new Class(className, true, null, fields, possibleSupertype ? new Class(possibleSupertype) : null, null, associatives.length);
 }
 
 function stripIdentifier(fieldName) {

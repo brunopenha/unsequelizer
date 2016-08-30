@@ -1,0 +1,8 @@
+package {{namespace.namespaceLowerCase}};
+
+{{#each dependencies}}
+import {{namespace}};
+{{/each}}
+
+interface I{{className.pascalCase}}Repository implements IRepository<{{className.pascalCase}}> {
+}
