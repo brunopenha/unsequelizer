@@ -7,6 +7,7 @@ const rimraf = require('rimraf')
 const changeCase = require('change-case')
 const sqlServerParse = require('./parsers/sql-server-parser')
 const classes = require('./classes')
+var readlineSync = require('readline-sync')
 
 const ClassField = classes.ClassField
 const Class = classes.Class
@@ -23,6 +24,7 @@ function aggregatorField(aggregator, field) {
   if (!fields[field.fieldName]) fields[field.fieldName] = field
   aggregators[aggregator] = fields
 }
+
 
 fs.readFile(process.argv[2], 'utf8', (err, data) =>
 {
@@ -137,18 +139,24 @@ function mapTable2Class(table) {
               })
 
               if (composesPrimary) {
-                // HACK !!!
-                if (possibleSupertype === null) possibleSupertype = constraint.referencedTable
-                else associatives.push(constraint.referencedTable)
+                // HACK cross loop control !!!
+                if (possibleSupertype === null) possibleSupertype = constraint.referencedTable // SIMPLE PK FK
+                else if (possibleSupertype !== constraint.referencedTable) associatives.push(constraint.referencedTable) // COMPOSED PK FK OR ASSOCIATIVE TABLE PK FK
                 // HACK-END
               }
               else {
 
+                const answers = ['is aggregated by', 'aggregates one', 'aggregates many']
+                const index = readlineSync.keyInSelect(
+                  answers, changeCase.swapCase(className) + ": " + answers.join('/') + " " + changeCase.swapCase(constraint.referencedTable) + " items?",
+                  {cancel: false}
+                )
+
                 fields.push(new ClassField(
-                      stripIdentifier(foreignKey), // fieldName
-                      new Class(constraint.referencedTable, true), // type
-                      columns.find(column => column.name === foreignKey).isNullable, // isNullable?
-                      false // isCollection
+                  index > 0 ? stripIdentifier(foreignKey) : foreignKey, // fieldName
+                  index > 0 ? new Class(constraint.referencedTable, true) : new Class(columns.find(column => column.name === foreignKey).type), // type
+                  columns.find(column => column.name === foreignKey).isNullable, // isNullable?
+                  index > 1 // isCollection
                 ))
               }
 
@@ -159,7 +167,7 @@ function mapTable2Class(table) {
 
   // IF IS ASSOCIATIVE TABLE
   if (associatives.length) {
-    // HACK !!!
+    // HACK cross loop control !!!
     associatives.push(possibleSupertype)
     possibleSupertype = null
     // HACK-END
