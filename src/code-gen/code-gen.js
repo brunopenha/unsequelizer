@@ -7,6 +7,7 @@ const rimraf = require('rimraf')
 const changeCase = require('change-case')
 const sqlServerParse = require('./parsers/sql-server-parser')
 const classes = require('./classes')
+var readlineSync = require('readline-sync')
 
 const ClassField = classes.ClassField
 const Class = classes.Class
@@ -23,6 +24,7 @@ function aggregatorField(aggregator, field) {
   if (!fields[field.fieldName]) fields[field.fieldName] = field
   aggregators[aggregator] = fields
 }
+
 
 fs.readFile(process.argv[2], 'utf8', (err, data) =>
 {
@@ -144,11 +146,17 @@ function mapTable2Class(table) {
               }
               else {
 
+                const answers = ['is aggregated by', 'aggregates one', 'aggregates many']
+                const index = readlineSync.keyInSelect(
+                  answers, changeCase.swapCase(className) + ": " + answers.join('/') + " " + changeCase.swapCase(constraint.referencedTable) + " items?",
+                  {cancel: false}
+                )
+
                 fields.push(new ClassField(
-                      stripIdentifier(foreignKey), // fieldName
-                      new Class(constraint.referencedTable, true), // type
-                      columns.find(column => column.name === foreignKey).isNullable, // isNullable?
-                      false // isCollection
+                  index > 0 ? stripIdentifier(foreignKey) : foreignKey, // fieldName
+                  index > 0 ? new Class(constraint.referencedTable, true) : new Class(columns.find(column => column.name === foreignKey).type), // type
+                  columns.find(column => column.name === foreignKey).isNullable, // isNullable?
+                  index > 1 // isCollection
                 ))
               }
 
