@@ -18,7 +18,10 @@ const DIST_FOLDER_PATH = 'dist-entities/'
 const TEMPLATE_FOLDER_PATH = 'templates/'
 const PLATFORMS = JSON.parse(fs.readFileSync('platforms-definitions.json', 'utf8'))
 
+const AGGREGATION_ANSWERS = ['IS AGGREGATED BY (1:1)', 'IS AGGREGATED BY (M:1)',  'AGGREGATES ONE (1:1)', 'AGGREGATES MANY (1:M)']
+
 const aggregators = {}
+
 function aggregatorField(aggregator, field) {
   const fields = aggregators[aggregator] || {}
   if (!fields[field.fieldName]) fields[field.fieldName] = field
@@ -26,90 +29,96 @@ function aggregatorField(aggregator, field) {
 }
 
 
-fs.readFile(process.argv[2], 'utf8', (err, data) =>
-{
-    if (err) return console.log(err);
+fs.readFile(process.argv[2], 'utf8', (err, data) => {
+  if (err) return console.log(err);
 
-    const parsedData = sqlServerParse(data)
-    const classes = [];
+  console.log('\nGENERATOR STARTED\n')
 
-    // Map table to classes
-    if (parsedData) parsedData.forEach(table => classes.push(mapTable2Class(table)))
+  const parsedData = sqlServerParse(data)
+  const classes = [];
 
-    // Reiterate mapping supertypes
-    classes.forEach(targetClass => {
+  // Map table to classes
+  if (parsedData) parsedData.forEach(table => classes.push(mapTable2Class(table)))
 
-      if (!targetClass.supertype) return;
+  // Reiterate mapping supertypes
+  classes.forEach(targetClass => {
 
-      const possibleSupertype = classes.find(possibleSupertype =>  possibleSupertype.className.snakeCase === targetClass.supertype.className.snakeCase)
-      if (possibleSupertype) targetClass.supertype = possibleSupertype
+    if (!targetClass.supertype) return;
 
-      targetClass.fields.forEach(field => {
-        const possibleFieldType = classes.find(possibleFieldType => possibleFieldType.className.snakeCase === field.type.className.snakeCase)
-        if (possibleFieldType) field.type = possibleFieldType
-      })
+    const possibleSupertype = classes.find(possibleSupertype => possibleSupertype.className.snakeCase === targetClass.supertype.className.snakeCase)
+    if (possibleSupertype) targetClass.supertype = possibleSupertype
 
+    targetClass.fields.forEach(field => {
+      const possibleFieldType = classes.find(possibleFieldType => possibleFieldType.className.snakeCase === field.type.className.snakeCase)
+      if (possibleFieldType) field.type = possibleFieldType
     })
 
-    classes.forEach(classDefinition =>
-    {
-        // AGGREGATOR FIELD DASH
-        for (let aggregator in aggregators)
-        {
-            if (aggregator === classDefinition.className.toString())
-            {
-                const aggregatorFields = aggregators[aggregator]
-                for (let fieldName in aggregatorFields)
-                {
-                    classDefinition.fields = classDefinition.fields.concat(aggregatorFields[fieldName])
-                }
-            }
+  })
+
+  classes.forEach(classDefinition => {
+    // AGGREGATOR FIELD DASH
+    for (let aggregator in aggregators) {
+      if (aggregator === classDefinition.className.toString()) {
+        const aggregatorFields = aggregators[aggregator]
+        for (let fieldName in aggregatorFields) {
+          classDefinition.fields = classDefinition.fields.concat(aggregatorFields[fieldName])
         }
-    })
+      }
+    }
+  })
 
-    PLATFORMS.forEach(language => {
-      if (language.isActive) for (var pack in language.packages) generatePlatformFile(pack, classes, language)
-    })
+  PLATFORMS.forEach(language => {
+    if (language.isActive)
+      for (var pack in language.packages) generatePlatformFile(pack, classes, language)
+  })
 })
 
 function generatePlatformFile(pack, classes, language) {
 
-    // PATH == PACKAGE NAME
-    const languageOutputFolder = DIST_FOLDER_PATH + language.folderName + '/' + changeCase.pathCase(pack) +'/';
-    const templatePath = TEMPLATE_FOLDER_PATH + changeCase.pathCase(pack) +'/'
+  // PATH == PACKAGE NAME
+  const languageOutputFolder = DIST_FOLDER_PATH + language.folderName + '/' + changeCase.pathCase(pack) + '/';
+  const templatePath = TEMPLATE_FOLDER_PATH + changeCase.pathCase(pack) + '/'
 
-    fs.readFile(templatePath + language.folderName + '.hbs', 'utf8', (err, template) => {
+  fs.readFile(templatePath + language.folderName + '.hbs', 'utf8', (err, template) => {
 
-        if (err) return console.log('COULD NOT FIND', templatePath + language.folderName + '.hbs');
-        else console.log('FOUND', templatePath + language.folderName + '.hbs');
+    if (err) return console.log('COULD NOT FIND', templatePath + language.folderName + '.hbs');
+    else console.log('FOUND', templatePath + language.folderName + '.hbs');
 
-        rimraf(languageOutputFolder, ['rmdir'], err => {
-            if (err) return console.log(err)
+    rimraf(languageOutputFolder, ['rmdir'], err => {
+      if (err) return console.log(err)
 
-            mkdirp(languageOutputFolder, (err) => {
-                if (err) return console.error(err)
+      mkdirp(languageOutputFolder, (err) => {
+        if (err) return console.error(err)
 
-                const languageWriter = Handlebars.compile(template)
+        const languageWriter = Handlebars.compile(template)
 
-                classes.forEach(classDefinition => {
+        classes.forEach(classDefinition => {
 
-                    if (classDefinition.isAssociative) return;
+          if (classDefinition.isAssociative) return;
 
-                    const languageClass = classDefinition.cloneForLanguage(language)
+          const languageClass = classDefinition.cloneForLanguage(language)
 
-                    languageClass.namespace = pack
+          languageClass.namespace = pack
 
-                    const file = new File(languageOutputFolder, Handlebars.compile(language.packages[pack])(new MultiCase(languageClass.className)), languageWriter(languageClass))
+          const file = new File(languageOutputFolder, Handlebars.compile(language.packages[pack])(new MultiCase(languageClass.className)), languageWriter(languageClass))
 
-                    fs.writeFile(file.path + file.name, file.content, err => {
-                        if (err) return console.log(file.path, err);
-                    })
-                })
-            })
+          fs.writeFile(file.path + file.name, file.content, err => {
+            if (err) return console.log(file.path, err);
+            console.log('OK\t' + file.path + file.name)
+          })
         })
+      })
     })
+  })
 }
 
+class ForeignKey {
+  constructor(table, foreignColumn, foreignTableName) {
+    this.table = table
+    this.foreignTableName = foreignTableName
+    this.foreignColumn = foreignColumn
+  }
+}
 
 function mapTable2Class(table) {
 
@@ -117,88 +126,147 @@ function mapTable2Class(table) {
   const columns = table.columns
   const constraints = table.constraints
 
-  let possibleSupertype = null
-  const associatives = []
-  const constraintKeys = []
+  let aggregations = []
 
-  let fields = []
+  const doAggregationQuestion = (a, b) => {
+    a = changeCase.swapCase(a)
+    b = changeCase.swapCase(b)
 
-  constraints.forEach(constraint => {
+    console.log('\n ' + a + ' __________ ' + b)
+    const index = readlineSync.keyInSelect(AGGREGATION_ANSWERS, null, { cancel: true })
+    if (index < 1) {
+      console.log('\nOPERATION CANCELED.\n')
+      process.exit(0)
+    }
+    aggregations.push(a + ' ' + AGGREGATION_ANSWERS[index] + ' '+ b)
+    return index
+  }
+
+  while(aggregations.length === 0) {
+
+    let possibleSupertype = null
+    const associativeTablePKs = []
+    const constraintKeys = []
+
+    let fields = []
+
+    constraints.forEach(constraint => {
 
       if (constraint.type.toUpperCase() === 'FOREIGN') {
 
-          constraint.keys.forEach(foreignKey => {
+        constraint.keys.forEach(foreignKey => {
 
-              // FOREIGN COMPOSES PRIMARY (Many to many) ?
-              const composesPrimary = constraints.some(comparedConstraint => {
-                  if (comparedConstraint.type.toUpperCase() === 'PRIMARY') {
-                      return comparedConstraint.keys.some(primaryKey => {
-                          return foreignKey === primaryKey
-                      })
-                  }
-              })
+          const foreignColumn = columns.find(column => column.name === foreignKey)
 
-              if (composesPrimary) {
-                // HACK cross loop control !!!
-                if (possibleSupertype === null) possibleSupertype = constraint.referencedTable // SIMPLE PK FK
-                else if (possibleSupertype !== constraint.referencedTable) associatives.push(constraint.referencedTable) // COMPOSED PK FK OR ASSOCIATIVE TABLE PK FK
-                // HACK-END
-              }
-              else {
+          // FOREIGN COMPOSES PRIMARY (Many to many) ?
+          const composesPrimary = constraints.some(comparedConstraint =>
+            changeCase.upperCase(comparedConstraint.type) === 'PRIMARY' ? comparedConstraint.keys.some(primaryKey => foreignKey === primaryKey) : false
+          )
 
-                const answers = ['is aggregated by', 'aggregates one', 'aggregates many']
-                const index = readlineSync.keyInSelect(
-                  answers, changeCase.swapCase(className) + ": " + answers.join('/') + " " + changeCase.swapCase(constraint.referencedTable) + " items?",
-                  {cancel: false}
+          // THIS FK COMPOSES PRIMARY KEY?
+          if (composesPrimary) {
+            const primaryForeignKey = new ForeignKey(table, foreignColumn, constraint.referencedTable)
+
+            // WHILE SIMPLE PK FK
+            if (possibleSupertype == null) possibleSupertype = primaryForeignKey
+
+            // COMPOSITE PK FK
+            else if (possibleSupertype !== constraint.referencedTable) associativeTablePKs.push(primaryForeignKey)
+          }
+          else {
+
+            // NON PRIMARY FK
+            const index = doAggregationQuestion(className, constraint.referencedTable)
+
+            switch(index) {
+              case 1: // AGREGGATED BY (1:1)
+              case 2: // AGREGGATED BY (M:1)
+                aggregatorField(constraint.referencedTable,
+                  new ClassField(
+                    table.name, // fieldName
+                    new Class(foreignColumn.type), // type
+                    foreignColumn.isNullable, // isNullable?
+                    index === 2 // isCollection
+                  )
                 )
+                break;
 
+              case 3: // AGREGGATES ONE (1:1)
+              case 4: // AGREGGATES MANY (1:M)
                 fields.push(new ClassField(
-                  index > 0 ? stripIdentifier(foreignKey) : foreignKey, // fieldName
-                  index > 0 ? new Class(constraint.referencedTable, true) : new Class(columns.find(column => column.name === foreignKey).type), // type
-                  columns.find(column => column.name === foreignKey).isNullable, // isNullable?
-                  index > 1 // isCollection
+                  stripIdentifier(foreignColumn.name), // fieldName
+                  new Class(constraint.referencedTable, true), // type
+                  foreignColumn.isNullable, // isNullable?
+                  index === 4 // isCollection
                 ))
-              }
+                break;
+            }
+          }
 
-              constraintKeys.push(foreignKey)
-          })
+          constraintKeys.push(foreignKey)
+        })
       }
-  })
-
-  // IF IS ASSOCIATIVE TABLE
-  if (associatives.length) {
-    // HACK cross loop control !!!
-    associatives.push(possibleSupertype)
-    possibleSupertype = null
-    // HACK-END
-
-    associatives.forEach(associative => {
-      associatives.forEach(otherAssociative => {
-        if (associative === otherAssociative) return;
-        aggregatorField(associative,
-            new ClassField(
-                className + (associatives.length < 3 ? '' : '_' + otherAssociative), // fieldName
-                new Class(otherAssociative, true), // type
-                true, // isNullable?
-                true // isCollection
-            )
-        )
-      })
     })
-  }
 
-  fields = columns.filter(column => { // FILTERS OUT COLUMNS IN PRIMARY/FOREIGN KEY
-    return constraintKeys.indexOf(column.name) === -1
-  }).map(column => {
-    return new ClassField(
+    // PROCESS ASSOCIATIVE TABLE KEYS
+    if (associativeTablePKs.length) {
+
+      associativeTablePKs.push(possibleSupertype)
+      possibleSupertype = null // ASSOCIATIVE CANNOT HAVE SUPERTYPE
+
+      associativeTablePKs.forEach(primaryForeignKey => {
+
+        const index = doAggregationQuestion(primaryForeignKey.foreignTableName, primaryForeignKey.table.name)
+
+        switch(index) {
+          case 1: // IS AGGREGATED BY (1:1)
+          case 2: // IS AGGREGATED BY (M:1)
+            new ClassField(
+              stripIdentifier(foreignColumn.name), // fieldName
+              new Class(foreignColumn.type, false), // type
+              foreignColumn.isNullable, // isNullable?
+              index === 2 // isCollection
+            )
+            break;
+
+          case 3: // AGGREGATES ONE (1:1)
+          case 4: // AGGREGATES MANY (1:M)
+            aggregatorField(primaryForeignKey.foreignTableName,
+              new ClassField(
+                stripIdentifier(primaryForeignKey.foreignTableName), // fieldName
+                new Class(primaryForeignKey.foreignTableName, true), // type
+                // TODO aggregator isNullable?
+                true, // isNullabe
+                index === 4 // isCollection
+              )
+            )
+            break;
+        }
+      })
+    }
+
+    // PROCESS FIELDS NOT PRESENT IN CONSTRAINTS
+    fields = columns.filter(column => { // FILTERS OUT COLUMNS IN PRIMARY/FOREIGN KEY
+      return constraintKeys.indexOf(column.name) === -1
+    }).map(column => {
+      return new ClassField(
         column.name, // fieldName
         new Class(column.type), // type
         column.isNullable, // isNullable?
         false // isCollection
-    )
-  }).concat(fields)
+      )
+    }).concat(fields)
 
-  return new Class(className, true, null, fields, possibleSupertype ? new Class(possibleSupertype) : null, null, associatives.length);
+    if (aggregations.length) {
+      console.log('\n' + aggregations.join('\n'))
+
+      if (readlineSync.keyInYN('\nIs this correct?') === false) {
+        aggregations = []
+        continue
+      }
+    }
+    return new Class(className, true, null, fields, possibleSupertype ? new Class(possibleSupertype.foreignTableName) : null, null, associativeTablePKs.length)
+  }
 }
 
 function stripIdentifier(fieldName) {
