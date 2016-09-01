@@ -1,3 +1,4 @@
 **/node_modules/
 **/*.sql
 **/dist-entities/
+*.txt

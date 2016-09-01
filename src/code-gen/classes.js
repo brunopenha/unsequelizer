@@ -1,5 +1,55 @@
 const changeCase = require('change-case')
 
+const AGGREGATION_TYPE_ENUM = {
+  AGGREGATED_BY_ONE: 'IS AGGREGATED BY (1:1)',
+  AGGREGATED_BY_MANY: 'IS AGGREGATED BY (M:1)',
+  AGGREGATES_ONE: 'AGGREGATES ONE (1:1)',
+  AGGREGATES_MANY: 'AGGREGATES MANY (1:M)'
+}
+exports.AGGREGATION_TYPE_ENUM = AGGREGATION_TYPE_ENUM
+
+class AggregationDefinition {
+    constructor(referencingTable, referencedTable, foreignFieldName, aggregationType) {
+      this.referencingTable = referencingTable || null // string
+      this.referencedTable = referencedTable || null // string
+      this.foreignFieldName = foreignFieldName || null // string
+      this.aggregationType = aggregationType || null   // string
+    }
+
+    static parseDefinition(value) {
+      const matches = String(value).match(/\s*([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+\(\s*column\s+([^\s]+).+/i)
+      if (matches) {
+        const referencingTable = matches[1]
+        const referencedTable = matches[3]
+        const foreignFieldName = matches[4]
+        const aggregationType = matches[2]
+        for (const enumType in AGGREGATION_TYPE_ENUM) {
+          if (changeCase.snakeCase(aggregationType) === changeCase.snakeCase(enumType)) {
+            return new AggregationDefinition(referencingTable, referencedTable, foreignFieldName, aggregationType)
+          }
+        }
+      }
+      return null
+    }
+
+    get isResolved() {
+      return !!(this.referencingTable  &&
+      this.referencedTable  &&
+      this.foreignFieldName &&
+      this.aggregationType)
+    }
+
+    static listPossibleAggregationTypes(aggregationDefinition) {
+      const possibilities = []
+      if (aggregationDefinition.isResolved === false) {
+        for (const aggregationType in AGGREGATION_TYPE_ENUM)
+          possibilities.push(`${aggregationDefinition.referencingTable} ${aggregationType} ${aggregationDefinition.referencedTable} (column ${aggregationDefinition.foreignFieldName} of ${aggregationDefinition.referencingTable})`)
+      }
+      return possibilities
+    }
+}
+exports.AggregationDefinition = AggregationDefinition
+
 class File {
     constructor(path, name, content, language) {
         this.path = path

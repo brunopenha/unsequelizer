@@ -13,15 +13,23 @@ const ClassField = classes.ClassField
 const Class = classes.Class
 const File = classes.File
 const MultiCase = classes.MultiCase
+const AGGREGATION_TYPE_ENUM = classes.AGGREGATION_TYPE_ENUM
+const AggregationDefinition = classes.AggregationDefinition
+
+const AGGREGATION_DEFINITIONS_FILE = 'aggregations-definitions.txt'
 
 const DIST_FOLDER_PATH = 'dist-entities/'
 const TEMPLATE_FOLDER_PATH = 'templates/'
 const PLATFORMS = JSON.parse(fs.readFileSync('platforms-definitions.json', 'utf8'))
 
-const AGGREGATION_ANSWERS = ['IS AGGREGATED BY (1:1)', 'IS AGGREGATED BY (M:1)',  'AGGREGATES ONE (1:1)', 'AGGREGATES MANY (1:M)']
+let loadedAggregationDefinitions
+try { loadedAggregationDefinitions = fs.readFileSync(AGGREGATION_DEFINITIONS_FILE, 'utf8').map(line => AggregationDefinition.parseDefinition()) } catch(ex) {}
+const LOADED_AGGREGATION_DEFINITIONS = loadedAggregationDefinitions || null
+
+const unresolvedAggregations = []
+
 
 const aggregators = {}
-
 function aggregatorField(aggregator, field) {
   const fields = aggregators[aggregator] || {}
   if (!fields[field.fieldName]) fields[field.fieldName] = field
@@ -39,6 +47,24 @@ fs.readFile(process.argv[2], 'utf8', (err, data) => {
 
   // Map table to classes
   if (parsedData) parsedData.forEach(table => classes.push(mapTable2Class(table)))
+
+  if (unresolvedAggregations) {
+    let data = 'PLEASE REMOVE THE "#" OF YOUR DESIRED AGGREGATION FORM\n\n'
+
+    if (LOADED_AGGREGATION_DEFINITIONS)
+      LOADED_AGGREGATION_DEFINITIONS.forEach(loaded => {
+        data += `${loaded.referencingTable} ${loaded.aggregationType} ${loaded.referencedTable} (column ${loaded.foreignFieldName} of ${aggregationDefinition.referencingTable})\n\n`
+      })
+
+    unresolvedAggregations.forEach(unresolved => {
+      data += `# ${AggregationDefinition.listPossibleAggregationTypes(unresolved).join('\n# ')}\n\n`
+    })
+
+    console.log(`\nPLEASE edit ${AGGREGATION_DEFINITIONS_FILE} and try again.\n`)
+    return fs.writeFile(AGGREGATION_DEFINITIONS_FILE, data, err => {
+      if (err) return console.log(`Could not write ${AGGREGATION_DEFINITIONS_FILE}`, err);
+    })
+  }
 
   // Reiterate mapping supertypes
   classes.forEach(targetClass => {
@@ -68,8 +94,7 @@ fs.readFile(process.argv[2], 'utf8', (err, data) => {
   })
 
   PLATFORMS.forEach(language => {
-    if (language.isActive)
-      for (var pack in language.packages) generatePlatformFile(pack, classes, language)
+    if (language.isActive) for (var pack in language.packages) generatePlatformFile(pack, classes, language)
   })
 })
 
@@ -104,7 +129,7 @@ function generatePlatformFile(pack, classes, language) {
 
           fs.writeFile(file.path + file.name, file.content, err => {
             if (err) return console.log(file.path, err);
-            console.log('OK\t' + file.path + file.name)
+            console.log(`OK\t${file.path + file.name}`)
           })
         })
       })
@@ -120,155 +145,184 @@ class ForeignKey {
   }
 }
 
-function mapTable2Class(table) {
+function mapTable2Class(table, aggregationDefinitions) {
 
   const className = table.name
   const columns = table.columns
   const constraints = table.constraints
 
-  let aggregations = []
+  let possibleSupertype = null
+  const associativeTablePKs = []
+  const constraintKeys = []
 
-  const doAggregationQuestion = (a, b) => {
-    a = changeCase.swapCase(a)
-    b = changeCase.swapCase(b)
+  let fields = []
 
-    console.log('\n ' + a + ' __________ ' + b)
-    const index = readlineSync.keyInSelect(AGGREGATION_ANSWERS, null, { cancel: true })
-    if (index < 1) {
-      console.log('\nOPERATION CANCELED.\n')
-      process.exit(0)
-    }
-    aggregations.push(a + ' ' + AGGREGATION_ANSWERS[index] + ' '+ b)
-    return index
-  }
+  constraints.forEach(constraint => {
 
-  while(aggregations.length === 0) {
+    if (constraint.type.toUpperCase() === 'FOREIGN') {
 
-    let possibleSupertype = null
-    const associativeTablePKs = []
-    const constraintKeys = []
+      constraint.keys.forEach(foreignKey => {
 
-    let fields = []
+        const foreignColumn = columns.find(column => column.name === foreignKey)
 
-    constraints.forEach(constraint => {
+        // FOREIGN COMPOSES PRIMARY (Many to many) ?
+        const composesPrimary = constraints.some(comparedConstraint =>
+          changeCase.upperCase(comparedConstraint.type) === 'PRIMARY' ? comparedConstraint.keys.some(primaryKey => foreignKey === primaryKey) : false
+        )
 
-      if (constraint.type.toUpperCase() === 'FOREIGN') {
+        // THIS FK COMPOSES PRIMARY KEY?
+        if (composesPrimary) {
+          const primaryForeignKey = new ForeignKey(table, foreignColumn, constraint.referencedTable)
 
-        constraint.keys.forEach(foreignKey => {
+          // WHILE SIMPLE PK FK
+          if (possibleSupertype == null) possibleSupertype = primaryForeignKey
 
-          const foreignColumn = columns.find(column => column.name === foreignKey)
-
-          // FOREIGN COMPOSES PRIMARY (Many to many) ?
-          const composesPrimary = constraints.some(comparedConstraint =>
-            changeCase.upperCase(comparedConstraint.type) === 'PRIMARY' ? comparedConstraint.keys.some(primaryKey => foreignKey === primaryKey) : false
-          )
-
-          // THIS FK COMPOSES PRIMARY KEY?
-          if (composesPrimary) {
-            const primaryForeignKey = new ForeignKey(table, foreignColumn, constraint.referencedTable)
-
-            // WHILE SIMPLE PK FK
-            if (possibleSupertype == null) possibleSupertype = primaryForeignKey
-
-            // COMPOSITE PK FK
-            else if (possibleSupertype !== constraint.referencedTable) associativeTablePKs.push(primaryForeignKey)
-          }
-          else {
-
-            // NON PRIMARY FK
-            const index = doAggregationQuestion(className, constraint.referencedTable)
-
-            switch(index) {
-              case 1: // AGREGGATED BY (1:1)
-              case 2: // AGREGGATED BY (M:1)
-                aggregatorField(constraint.referencedTable,
-                  new ClassField(
-                    table.name, // fieldName
-                    new Class(foreignColumn.type), // type
-                    foreignColumn.isNullable, // isNullable?
-                    index === 2 // isCollection
-                  )
-                )
-                break;
-
-              case 3: // AGREGGATES ONE (1:1)
-              case 4: // AGREGGATES MANY (1:M)
-                fields.push(new ClassField(
-                  stripIdentifier(foreignColumn.name), // fieldName
-                  new Class(constraint.referencedTable, true), // type
-                  foreignColumn.isNullable, // isNullable?
-                  index === 4 // isCollection
-                ))
-                break;
-            }
-          }
-
-          constraintKeys.push(foreignKey)
-        })
-      }
-    })
-
-    // PROCESS ASSOCIATIVE TABLE KEYS
-    if (associativeTablePKs.length) {
-
-      associativeTablePKs.push(possibleSupertype)
-      possibleSupertype = null // ASSOCIATIVE CANNOT HAVE SUPERTYPE
-
-      associativeTablePKs.forEach(primaryForeignKey => {
-
-        const index = doAggregationQuestion(primaryForeignKey.foreignTableName, primaryForeignKey.table.name)
-
-        switch(index) {
-          case 1: // IS AGGREGATED BY (1:1)
-          case 2: // IS AGGREGATED BY (M:1)
-            new ClassField(
-              stripIdentifier(foreignColumn.name), // fieldName
-              new Class(foreignColumn.type, false), // type
-              foreignColumn.isNullable, // isNullable?
-              index === 2 // isCollection
-            )
-            break;
-
-          case 3: // AGGREGATES ONE (1:1)
-          case 4: // AGGREGATES MANY (1:M)
-            aggregatorField(primaryForeignKey.foreignTableName,
-              new ClassField(
-                stripIdentifier(primaryForeignKey.foreignTableName), // fieldName
-                new Class(primaryForeignKey.foreignTableName, true), // type
-                // TODO aggregator isNullable?
-                true, // isNullabe
-                index === 4 // isCollection
-              )
-            )
-            break;
+          // COMPOSITE PK FK
+          else if (possibleSupertype !== constraint.referencedTable) associativeTablePKs.push(primaryForeignKey)
         }
+        else { // NON PRIMARY FK
+
+          const aggregationDefinition = resolveAggregationDefinition(table.name, constraint.referencedTable, foreignKey)
+
+          if (!aggregationDefinition) return
+
+          switch(aggregationDefinition.aggregationType) {
+
+            case AGGREGATION_TYPE_ENUM.AGGREGATED_BY_ONE:
+              aggregatorField(constraint.referencedTable,
+                new ClassField(
+                  table.name, // fieldName
+                  new Class(foreignColumn.type), // type
+                  foreignColumn.isNullable, // isNullable?
+                  false // isCollection
+                )
+              )
+              break
+
+            case AGGREGATION_TYPE_ENUM.AGGREGATED_BY_MANY:
+              aggregatorField(constraint.referencedTable,
+                new ClassField(
+                  table.name, // fieldName
+                  new Class(foreignColumn.type), // type
+                  foreignColumn.isNullable, // isNullable?
+                  true // isCollection
+                )
+              )
+              break
+
+            case AGGREGATION_TYPE_ENUM.AGGREGATES_ONE:
+              fields.push(new ClassField(
+                stripIdentifier(foreignColumn.name), // fieldName
+                new Class(constraint.referencedTable, true), // type
+                foreignColumn.isNullable, // isNullable?
+                false // isCollection
+              ))
+            break
+
+            case AGGREGATION_TYPE_ENUM.AGGREGATES_MANY:
+              fields.push(new ClassField(
+                stripIdentifier(foreignColumn.name), // fieldName
+                new Class(constraint.referencedTable, true), // type
+                foreignColumn.isNullable, // isNullable?
+                true // isCollection
+              ))
+              break
+          }
+        }
+
+        constraintKeys.push(foreignKey)
       })
     }
+  })
 
-    // PROCESS FIELDS NOT PRESENT IN CONSTRAINTS
-    fields = columns.filter(column => { // FILTERS OUT COLUMNS IN PRIMARY/FOREIGN KEY
-      return constraintKeys.indexOf(column.name) === -1
-    }).map(column => {
-      return new ClassField(
+  // PROCESS ASSOCIATIVE TABLE KEYS
+  if (associativeTablePKs.length) {
+
+    associativeTablePKs.push(possibleSupertype)
+    possibleSupertype = null // ASSOCIATIVE CANNOT HAVE SUPERTYPE
+
+    associativeTablePKs.forEach(primaryForeignKey => {
+
+      const aggregationDefinition = resolveAggregationDefinition(primaryForeignKey.table.name, primaryForeignKey.foreignTableName, foreignColumn.name)
+      if (!aggregationDefinition) return
+
+      switch(aggregationDefinition.aggregationType) {
+
+        case AGGREGATION_TYPE_ENUM.AGGREGATED_BY_ONE:
+          new ClassField(
+            stripIdentifier(foreignColumn.name), // fieldName
+            new Class(foreignColumn.type, false), // type
+            foreignColumn.isNullable, // isNullable?
+            false // isCollection
+          )
+          break
+
+        case AGGREGATION_TYPE_ENUM.AGGREGATED_BY_MANY:
+          new ClassField(
+            stripIdentifier(foreignColumn.name), // fieldName
+            new Class(foreignColumn.type, false), // type
+            foreignColumn.isNullable, // isNullable?
+            true // isCollection
+          )
+          break
+
+        case AGGREGATION_TYPE_ENUM.AGGREGATES_ONE:
+          aggregatorField(primaryForeignKey.foreignTableName,
+            new ClassField(
+              stripIdentifier(primaryForeignKey.foreignTableName), // fieldName
+              new Class(primaryForeignKey.foreignTableName, true), // type
+              // TODO aggregator isNullable?
+              true, // isNullabe
+              false // isCollection
+            )
+          )
+          break
+
+        case AGGREGATION_TYPE_ENUM.AGGREGATES_MANY:
+          aggregatorField(primaryForeignKey.foreignTableName,
+            new ClassField(
+              stripIdentifier(primaryForeignKey.foreignTableName), // fieldName
+              new Class(primaryForeignKey.foreignTableName, true), // type
+              // TODO aggregator isNullable?
+              true, // isNullabe
+              true // isCollection
+            )
+          )
+          break
+      }
+    })
+  }
+
+  // PROCESS FIELDS NOT PRESENT IN CONSTRAINTS
+  fields = columns.filter(column => constraintKeys.indexOf(column.name) === -1) // FILTERS OUT COLUMNS IN PRIMARY/FOREIGN KEY
+    .map(column =>
+      new ClassField(
         column.name, // fieldName
         new Class(column.type), // type
         column.isNullable, // isNullable?
         false // isCollection
       )
-    }).concat(fields)
+    ).concat(fields)
 
-    if (aggregations.length) {
-      console.log('\n' + aggregations.join('\n'))
-
-      if (readlineSync.keyInYN('\nIs this correct?') === false) {
-        aggregations = []
-        continue
-      }
-    }
-    return new Class(className, true, null, fields, possibleSupertype ? new Class(possibleSupertype.foreignTableName) : null, null, associativeTablePKs.length)
-  }
+  return new Class(className, true, null, fields, possibleSupertype ? new Class(possibleSupertype.foreignTableName) : null, null, associativeTablePKs.length)
 }
 
 function stripIdentifier(fieldName) {
   return fieldName.replace(/(?:\b|_|\s)id(?:\b|_|\s)/i, '');
+}
+
+function resolveAggregationDefinition(referencingTable, referencedTable, foreignFieldName) {
+
+  let definitions
+  if (Array.isArray(LOADED_AGGREGATION_DEFINITIONS))
+    definitions = LOADED_AGGREGATION_DEFINITIONS.find(definition =>
+      possibleDefinition.referencingTable === referencingTable &&
+      possibleDefinition.referencedTable === referencedTable &&
+      possibleDefinition.foreignFieldName === foreignFieldName
+    )
+  if (!definitions) {
+    unresolvedAggregations.push(new AggregationDefinition(referencingTable, referencedTable, foreignFieldName))
+    console.log(`Could not find aggregation definition for: ${referencingTable} <-> ${referencedTable} (column ${foreignFieldName} of ${referencingTable})`)
+  }
+  return definitions
 }
