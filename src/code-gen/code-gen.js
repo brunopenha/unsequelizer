@@ -1,39 +1,42 @@
 // HACK: Rustic, bearded, angry and sweating
 'use strict'
+
+// packages
 const fs = require('fs')
 const Handlebars = require('handlebars')
 const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
 const changeCase = require('change-case')
 const sqlServerParse = require('./parsers/sql-server-parser')
-const classes = require('./classes')
-var readlineSync = require('readline-sync')
+const readlineSync = require('readline-sync')
 
-const ClassField = classes.ClassField
-const Class = classes.Class
-const File = classes.File
-const MultiCase = classes.MultiCase
-const AGGREGATION_TYPE_ENUM = classes.AGGREGATION_TYPE_ENUM
-const AggregationDefinition = classes.AggregationDefinition
+// CLASSES
+const ClassField = require('./classes/ClassField')
+const Class = require('./classes/Class')
+const File = require('./classes/File')
+const MultiCase = require('./classes/MultiCase')
+const AggregationTypeEnum = require('./classes/AggregationTypeEnum')
+const AggregationDefinition = require('./classes/AggregationDefinition')
 
-const AGGREGATION_DEFINITIONS_FILE = 'aggregations-definitions.txt'
-
+// CONSTANTS
+const FILE_AGGREGATION_DEFINITIONS = 'aggregations-definitions.txt'
+const FILE_PLATFORM_DEFINITIONS = 'platforms-definitions.json'
 const DIST_FOLDER_PATH = 'dist-entities/'
 const TEMPLATE_FOLDER_PATH = 'templates/'
-const PLATFORMS = JSON.parse(fs.readFileSync('platforms-definitions.json', 'utf8'))
+const PLATFORMS = JSON.parse(fs.readFileSync(FILE_PLATFORM_DEFINITIONS, 'utf8'))
 
 let loadedAggregationDefinitions
-try { loadedAggregationDefinitions = fs.readFileSync(AGGREGATION_DEFINITIONS_FILE, 'utf8').map(line => AggregationDefinition.parseDefinition()) } catch(ex) {}
+try { loadedAggregationDefinitions = fs.readFileSync(FILE_AGGREGATION_DEFINITIONS, 'utf8').map(line => AggregationDefinition.parseDefinition()) } catch(ex) {}
 const LOADED_AGGREGATION_DEFINITIONS = loadedAggregationDefinitions || null
 
 const unresolvedAggregations = []
 
 
-const aggregators = {}
-function aggregatorField(aggregator, field) {
-  const fields = aggregators[aggregator] || {}
-  if (!fields[field.fieldName]) fields[field.fieldName] = field
-  aggregators[aggregator] = fields
+const aggregatorRegister = {}
+function registerAggregateField(aggregator, classField) {
+  const classFields = aggregatorRegister[aggregator] || {}
+  if (!classFields[classField.fieldName]) classFields[classField.fieldName] = classField
+  aggregatorRegister[aggregator] = classFields
 }
 
 
@@ -60,9 +63,9 @@ fs.readFile(process.argv[2], 'utf8', (err, data) => {
       data += `# ${AggregationDefinition.listPossibleAggregationTypes(unresolved).join('\n# ')}\n\n`
     })
 
-    console.log(`\nPLEASE edit ${AGGREGATION_DEFINITIONS_FILE} and try again.\n`)
-    return fs.writeFile(AGGREGATION_DEFINITIONS_FILE, data, err => {
-      if (err) return console.log(`Could not write ${AGGREGATION_DEFINITIONS_FILE}`, err);
+    console.log(`\nPLEASE edit ${FILE_AGGREGATION_DEFINITIONS} and try again.\n`)
+    return fs.writeFile(FILE_AGGREGATION_DEFINITIONS, data, err => {
+      if (err) return console.log(`Could not write ${FILE_AGGREGATION_DEFINITIONS}`, err);
     })
   }
 
@@ -188,8 +191,8 @@ function mapTable2Class(table, aggregationDefinitions) {
 
           switch(aggregationDefinition.aggregationType) {
 
-            case AGGREGATION_TYPE_ENUM.AGGREGATED_BY_ONE:
-              aggregatorField(constraint.referencedTable,
+            case AggregationTypeEnum.AGGREGATED_BY_ONE:
+              registerAggregateField(constraint.referencedTable,
                 new ClassField(
                   table.name, // fieldName
                   new Class(foreignColumn.type), // type
@@ -199,8 +202,8 @@ function mapTable2Class(table, aggregationDefinitions) {
               )
               break
 
-            case AGGREGATION_TYPE_ENUM.AGGREGATED_BY_MANY:
-              aggregatorField(constraint.referencedTable,
+            case AggregationTypeEnum.AGGREGATED_BY_MANY:
+              registerAggregateField(constraint.referencedTable,
                 new ClassField(
                   table.name, // fieldName
                   new Class(foreignColumn.type), // type
@@ -210,7 +213,7 @@ function mapTable2Class(table, aggregationDefinitions) {
               )
               break
 
-            case AGGREGATION_TYPE_ENUM.AGGREGATES_ONE:
+            case AggregationTypeEnum.AGGREGATES_ONE:
               fields.push(new ClassField(
                 stripIdentifier(foreignColumn.name), // fieldName
                 new Class(constraint.referencedTable, true), // type
@@ -219,7 +222,7 @@ function mapTable2Class(table, aggregationDefinitions) {
               ))
             break
 
-            case AGGREGATION_TYPE_ENUM.AGGREGATES_MANY:
+            case AggregationTypeEnum.AGGREGATES_MANY:
               fields.push(new ClassField(
                 stripIdentifier(foreignColumn.name), // fieldName
                 new Class(constraint.referencedTable, true), // type
@@ -248,7 +251,7 @@ function mapTable2Class(table, aggregationDefinitions) {
 
       switch(aggregationDefinition.aggregationType) {
 
-        case AGGREGATION_TYPE_ENUM.AGGREGATED_BY_ONE:
+        case AggregationTypeEnum.AGGREGATED_BY_ONE:
           new ClassField(
             stripIdentifier(foreignColumn.name), // fieldName
             new Class(foreignColumn.type, false), // type
@@ -257,7 +260,7 @@ function mapTable2Class(table, aggregationDefinitions) {
           )
           break
 
-        case AGGREGATION_TYPE_ENUM.AGGREGATED_BY_MANY:
+        case AggregationTypeEnum.AGGREGATED_BY_MANY:
           new ClassField(
             stripIdentifier(foreignColumn.name), // fieldName
             new Class(foreignColumn.type, false), // type
@@ -266,8 +269,8 @@ function mapTable2Class(table, aggregationDefinitions) {
           )
           break
 
-        case AGGREGATION_TYPE_ENUM.AGGREGATES_ONE:
-          aggregatorField(primaryForeignKey.foreignTableName,
+        case AggregationTypeEnum.AGGREGATES_ONE:
+          registerAggregateField(primaryForeignKey.foreignTableName,
             new ClassField(
               stripIdentifier(primaryForeignKey.foreignTableName), // fieldName
               new Class(primaryForeignKey.foreignTableName, true), // type
@@ -278,8 +281,8 @@ function mapTable2Class(table, aggregationDefinitions) {
           )
           break
 
-        case AGGREGATION_TYPE_ENUM.AGGREGATES_MANY:
-          aggregatorField(primaryForeignKey.foreignTableName,
+        case AggregationTypeEnum.AGGREGATES_MANY:
+          registerAggregateField(primaryForeignKey.foreignTableName,
             new ClassField(
               stripIdentifier(primaryForeignKey.foreignTableName), // fieldName
               new Class(primaryForeignKey.foreignTableName, true), // type

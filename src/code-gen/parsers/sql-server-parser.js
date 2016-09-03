@@ -2,12 +2,9 @@
 
 const changeCase = require('change-case')
 const multiMatch = require('../utils').multiMatch
-const classes = require('../classes')
-
-const Table = classes.Table
-const TableColumn = classes.TableColumn
-const TableConstraint = classes.TableConstraint
-const Table2Class = classes.Table2Class
+const Table = require('../classes/Table')
+const TableColumn = require('../classes/TableColumn')
+const TableConstraint = require('../classes/TableConstraint')
 
 module.exports = function parse(data) {
 
