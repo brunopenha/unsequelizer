@@ -1,3 +1,5 @@
+const changeCase = require('change-case')
+
 module.exports =
 
 class Table {

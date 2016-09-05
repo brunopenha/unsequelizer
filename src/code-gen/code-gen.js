@@ -17,89 +17,158 @@ const File = require('./classes/File')
 const MultiCase = require('./classes/MultiCase')
 const AggregationTypeEnum = require('./classes/AggregationTypeEnum')
 const AggregationDefinition = require('./classes/AggregationDefinition')
+const AggregationRegister = require('./classes/AggregationRegister')
 
 // CONSTANTS
-const FILE_AGGREGATION_DEFINITIONS = 'aggregations-definitions.txt'
 const FILE_PLATFORM_DEFINITIONS = 'platforms-definitions.json'
 const DIST_FOLDER_PATH = 'dist-entities/'
 const TEMPLATE_FOLDER_PATH = 'templates/'
-const PLATFORMS = JSON.parse(fs.readFileSync(FILE_PLATFORM_DEFINITIONS, 'utf8'))
 
-let loadedAggregationDefinitions
-try { loadedAggregationDefinitions = fs.readFileSync(FILE_AGGREGATION_DEFINITIONS, 'utf8').map(line => AggregationDefinition.parseDefinition()) } catch(ex) {}
-const LOADED_AGGREGATION_DEFINITIONS = loadedAggregationDefinitions || null
-
-const unresolvedAggregations = []
-
-
-const aggregatorRegister = {}
-function registerAggregateField(aggregator, classField) {
-  const classFields = aggregatorRegister[aggregator] || {}
-  if (!classFields[classField.fieldName]) classFields[classField.fieldName] = classField
-  aggregatorRegister[aggregator] = classFields
-}
+// GLOBALS
+const globalPlatformsDefinitions = JSON.parse(fs.readFileSync(FILE_PLATFORM_DEFINITIONS, 'utf8'))
+let globalIsDumpMode = false
+let globalSqlFilename
+let globalDefsFilename
+let globalAggregationDefinitions
 
 
-fs.readFile(process.argv[2], 'utf8', (err, data) => {
-  if (err) return console.log(err);
+// CLI COMMANDS
+const cli = require('commander');
+cli
+  .version('0.0.1')
 
-  console.log('\nGENERATOR STARTED\n')
+  // DUMP DEFS
+cli.command('dumpdefs <sql_filename> <aggregation_definitions_filename>')
+  .description('Dump aggregation definitions file.')
+  .action(function(sqlFilename, defsFilename) {
+    globalIsDumpMode = true
+    globalSqlFilename = sqlFilename
+    globalDefsFilename = defsFilename
+    main()
+  })
 
-  const parsedData = sqlServerParse(data)
-  const classes = [];
+  // GENERATE
+cli.command('gen <sql_filename> <aggregation_definitions_filename>')
+  .description('Generate code using information of sql-script and aggregation definitions files.')
+  .action(function(sqlFilename, defsFilename) {
+    globalIsDumpMode = false
+    globalSqlFilename = sqlFilename
+    globalDefsFilename = defsFilename
 
-  // Map table to classes
-  if (parsedData) parsedData.forEach(table => classes.push(mapTable2Class(table)))
+    // LOAD globalAggregationDefinitions
+    try {
 
-  if (unresolvedAggregations) {
-    let data = 'PLEASE REMOVE THE "#" OF YOUR DESIRED AGGREGATION FORM\n\n'
+      const definitions = new Map()
+      let duplicated = false
 
-    if (LOADED_AGGREGATION_DEFINITIONS)
-      LOADED_AGGREGATION_DEFINITIONS.forEach(loaded => {
-        data += `${loaded.referencingTable} ${loaded.aggregationType} ${loaded.referencedTable} (column ${loaded.foreignFieldName} of ${aggregationDefinition.referencingTable})\n\n`
+      fs.readFileSync(globalDefsFilename, 'utf8').split(/\r?\n/gm).forEach(line => {
+
+        const definition = AggregationDefinition.parseDefinition(line)
+        if (definition) {
+          const key = `${definition.referencingTable}.${definition.foreignFieldName} ${definition.referencedTable}`
+          if (definitions.has(key)) {
+            console.log(`Duplicated aggregation definition for: ${key}`)
+            duplicated = true
+          }
+          else {
+            definitions.set(key, definition)
+          }
+        }
+      })
+      if (duplicated) {
+        console.log(`\nCould not generate files due to duplicated aggregation definitions.\n`)
+        process.exit(0)
+      }
+
+      globalAggregationDefinitions = []
+      definitions.forEach(value => globalAggregationDefinitions.push(value))
+    }
+    catch(ex) {
+      return console.log(`Could not load aggregation definitions file ${defsFilename}.`)
+    }
+
+    main()
+  })
+
+cli.parse(process.argv);
+
+
+
+function main() {
+
+  rimraf(DIST_FOLDER_PATH, ['rmdir'], err => {
+    if (err) return console.log(`Could not delete distribution folder "${DIST_FOLDER_PATH}".`)
+
+    fs.readFile(globalSqlFilename, 'utf8', (err, data) => {
+      if (err) return console.log(`Could not load sql definitions from ${globalSqlFilename} file.`);
+
+      console.log(`\nGENERATOR STARTED ON ${globalIsDumpMode ? 'DUMP' : 'GENERATION'} MODE (MODES: DUMP/GENERATION)\n`)
+
+      const parsedData = sqlServerParse(data)
+      const classes = [];
+
+      // Map table to classes
+      if (parsedData) parsedData.forEach(table => classes.push(mapTable2Class(table)))
+
+      if (globalIsDumpMode) {
+        let data = 'PLEASE REMOVE THE "#" OF YOUR DESIRED AGGREGATION FORM\n\n'
+
+        AggregationRegister.listUnresolvedAggregation().forEach(unresolved => {
+          data += `# ${AggregationDefinition.listPossibleDefinitions(unresolved).join('\n# ')}\n\n`
+        })
+
+        console.log(`\nPLEASE EDIT ${globalDefsFilename} AND RE-EXECUTE IN GENERATE MODE (gen).\n`)
+
+        fs.writeFile(globalDefsFilename, data, err => {
+          if (err) return console.log(`Could not write ${globalDefsFilename}. Internal error.`, err);
+          process.exit(0)
+        })
+
+        return;
+      }
+
+      // QUIT ON MISSING DEFINITION
+      //console.log(AggregationRegister.listUnresolvedAggregation().length)
+      if (AggregationRegister.listUnresolvedAggregation().length) {
+        console.log(`\nCould not generate files due to missing aggregation definitions.\n`)
+        process.exit(0)
+      }
+
+      // Reiterate mapping supertypes
+      classes.forEach(targetClass => {
+
+        if (!targetClass.supertype) return;
+
+        const possibleSupertype = classes.find(possibleSupertype => possibleSupertype.className.snakeCase === targetClass.supertype.className.snakeCase)
+        if (possibleSupertype) targetClass.supertype = possibleSupertype
+
+        targetClass.fields.forEach(field => {
+          const possibleFieldType = classes.find(possibleFieldType => possibleFieldType.className.snakeCase === field.type.className.snakeCase)
+          if (possibleFieldType) field.type = possibleFieldType
+        })
       })
 
-    unresolvedAggregations.forEach(unresolved => {
-      data += `# ${AggregationDefinition.listPossibleAggregationTypes(unresolved).join('\n# ')}\n\n`
-    })
-
-    console.log(`\nPLEASE edit ${FILE_AGGREGATION_DEFINITIONS} and try again.\n`)
-    return fs.writeFile(FILE_AGGREGATION_DEFINITIONS, data, err => {
-      if (err) return console.log(`Could not write ${FILE_AGGREGATION_DEFINITIONS}`, err);
-    })
-  }
-
-  // Reiterate mapping supertypes
-  classes.forEach(targetClass => {
-
-    if (!targetClass.supertype) return;
-
-    const possibleSupertype = classes.find(possibleSupertype => possibleSupertype.className.snakeCase === targetClass.supertype.className.snakeCase)
-    if (possibleSupertype) targetClass.supertype = possibleSupertype
-
-    targetClass.fields.forEach(field => {
-      const possibleFieldType = classes.find(possibleFieldType => possibleFieldType.className.snakeCase === field.type.className.snakeCase)
-      if (possibleFieldType) field.type = possibleFieldType
-    })
-
-  })
-
-  classes.forEach(classDefinition => {
-    // AGGREGATOR FIELD DASH
-    for (let aggregator in aggregators) {
-      if (aggregator === classDefinition.className.toString()) {
-        const aggregatorFields = aggregators[aggregator]
-        for (let fieldName in aggregatorFields) {
-          classDefinition.fields = classDefinition.fields.concat(aggregatorFields[fieldName])
+      // RESOLVE AGGREGATED CLASS FIELDS
+      const fieldAggregations = AggregationRegister.listFieldAggregations()
+      classes.forEach(classDefinition => {
+        // AGGREGATOR FIELD DASH
+        //console.log('------------------',AggregationRegister.listFieldAggregations())
+        for (let aggregator in fieldAggregations) {
+          if (aggregator === classDefinition.className.toString()) {
+            const aggregatorFields = fieldAggregations[aggregator]
+            for (let fieldName in aggregatorFields) {
+              classDefinition.fields = classDefinition.fields.concat(aggregatorFields[fieldName])
+            }
+          }
         }
-      }
-    }
-  })
+      })
 
-  PLATFORMS.forEach(language => {
-    if (language.isActive) for (var pack in language.packages) generatePlatformFile(pack, classes, language)
+      globalPlatformsDefinitions.forEach(language => {
+        if (language.isActive) for (var pack in language.packages) generatePlatformFile(pack, classes, language)
+      })
+    })
   })
-})
+}
 
 function generatePlatformFile(pack, classes, language) {
 
@@ -112,28 +181,24 @@ function generatePlatformFile(pack, classes, language) {
     if (err) return console.log('COULD NOT FIND', templatePath + language.folderName + '.hbs');
     else console.log('FOUND', templatePath + language.folderName + '.hbs');
 
-    rimraf(languageOutputFolder, ['rmdir'], err => {
-      if (err) return console.log(err)
+    mkdirp(languageOutputFolder, (err) => {
+      if (err) return console.error(err)
 
-      mkdirp(languageOutputFolder, (err) => {
-        if (err) return console.error(err)
+      const languageWriter = Handlebars.compile(template)
 
-        const languageWriter = Handlebars.compile(template)
+      classes.forEach(classDefinition => {
 
-        classes.forEach(classDefinition => {
+        if (classDefinition.isAssociative) return;
 
-          if (classDefinition.isAssociative) return;
+        const languageClass = classDefinition.cloneForLanguage(language)
 
-          const languageClass = classDefinition.cloneForLanguage(language)
+        languageClass.namespace = pack
 
-          languageClass.namespace = pack
+        const file = new File(languageOutputFolder, Handlebars.compile(language.packages[pack])(new MultiCase(languageClass.className)), languageWriter(languageClass))
 
-          const file = new File(languageOutputFolder, Handlebars.compile(language.packages[pack])(new MultiCase(languageClass.className)), languageWriter(languageClass))
-
-          fs.writeFile(file.path + file.name, file.content, err => {
-            if (err) return console.log(file.path, err);
-            console.log(`OK\t${file.path + file.name}`)
-          })
+        fs.writeFile(file.path + file.name, file.content, err => {
+          if (err) return console.log(file.path, err);
+          console.log(`OK\t${file.path + file.name}`)
         })
       })
     })
@@ -148,7 +213,7 @@ class ForeignKey {
   }
 }
 
-function mapTable2Class(table, aggregationDefinitions) {
+function mapTable2Class(table) {
 
   const className = table.name
   const columns = table.columns
@@ -192,10 +257,11 @@ function mapTable2Class(table, aggregationDefinitions) {
           switch(aggregationDefinition.aggregationType) {
 
             case AggregationTypeEnum.AGGREGATED_BY_ONE:
-              registerAggregateField(constraint.referencedTable,
+              AggregationRegister.registerFieldAggregation(
+                constraint.referencedTable,
                 new ClassField(
                   table.name, // fieldName
-                  new Class(foreignColumn.type), // type
+                  new Class(table.name, true), // type
                   foreignColumn.isNullable, // isNullable?
                   false // isCollection
                 )
@@ -203,10 +269,11 @@ function mapTable2Class(table, aggregationDefinitions) {
               break
 
             case AggregationTypeEnum.AGGREGATED_BY_MANY:
-              registerAggregateField(constraint.referencedTable,
+              AggregationRegister.registerFieldAggregation(
+                constraint.referencedTable,
                 new ClassField(
                   table.name, // fieldName
-                  new Class(foreignColumn.type), // type
+                  new Class(table.name, true), // type
                   foreignColumn.isNullable, // isNullable?
                   true // isCollection
                 )
@@ -249,6 +316,7 @@ function mapTable2Class(table, aggregationDefinitions) {
       const aggregationDefinition = resolveAggregationDefinition(primaryForeignKey.table.name, primaryForeignKey.foreignTableName, foreignColumn.name)
       if (!aggregationDefinition) return
 
+
       switch(aggregationDefinition.aggregationType) {
 
         case AggregationTypeEnum.AGGREGATED_BY_ONE:
@@ -270,7 +338,8 @@ function mapTable2Class(table, aggregationDefinitions) {
           break
 
         case AggregationTypeEnum.AGGREGATES_ONE:
-          registerAggregateField(primaryForeignKey.foreignTableName,
+          AggregationRegister.registerFieldAggregation(
+            primaryForeignKey.foreignTableName,
             new ClassField(
               stripIdentifier(primaryForeignKey.foreignTableName), // fieldName
               new Class(primaryForeignKey.foreignTableName, true), // type
@@ -282,7 +351,8 @@ function mapTable2Class(table, aggregationDefinitions) {
           break
 
         case AggregationTypeEnum.AGGREGATES_MANY:
-          registerAggregateField(primaryForeignKey.foreignTableName,
+          AggregationRegister.registerFieldAggregation(
+            primaryForeignKey.foreignTableName,
             new ClassField(
               stripIdentifier(primaryForeignKey.foreignTableName), // fieldName
               new Class(primaryForeignKey.foreignTableName, true), // type
@@ -316,16 +386,21 @@ function stripIdentifier(fieldName) {
 
 function resolveAggregationDefinition(referencingTable, referencedTable, foreignFieldName) {
 
-  let definitions
-  if (Array.isArray(LOADED_AGGREGATION_DEFINITIONS))
-    definitions = LOADED_AGGREGATION_DEFINITIONS.find(definition =>
-      possibleDefinition.referencingTable === referencingTable &&
-      possibleDefinition.referencedTable === referencedTable &&
-      possibleDefinition.foreignFieldName === foreignFieldName
+  if (globalIsDumpMode) AggregationRegister.registerUnresolvedAggregation(new AggregationDefinition(referencingTable, referencedTable, foreignFieldName))
+  else {
+    //console.log(referencingTable, referencedTable, foreignFieldName)
+    const definition = globalAggregationDefinitions.find(definition =>
+      definition.referencingTable === referencingTable &&
+      definition.referencedTable  === referencedTable &&
+      definition.foreignFieldName === foreignFieldName
     )
-  if (!definitions) {
-    unresolvedAggregations.push(new AggregationDefinition(referencingTable, referencedTable, foreignFieldName))
-    console.log(`Could not find aggregation definition for: ${referencingTable} <-> ${referencedTable} (column ${foreignFieldName} of ${referencingTable})`)
+
+  //  console.log(definition)
+
+    if (!definition) {
+      AggregationRegister.registerUnresolvedAggregation(new AggregationDefinition(referencingTable, referencedTable, foreignFieldName))
+      return console.log(`Undefined aggregation: ${referencingTable}.${foreignFieldName} <-> ${referencedTable}`)
+    }
+    return definition
   }
-  return definitions
 }

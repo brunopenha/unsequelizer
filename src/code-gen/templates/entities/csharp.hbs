@@ -22,7 +22,7 @@ namespace {{namespace.namespacePascalCase}}
         /// <summary>
         /// TODO: write {{../className.pascalCase}}.{{fieldName.pascalCase}}{{#if isCollection}}s{{/if}} summary
         /// </summary>
-        public {{#unless type.isDomainClassType}}{{#if isNullable}}Nullable<{{/if}}{{/unless}}{{#if isCollection}}List<{{/if}}{{#if type.isDomainClassType}}{{type.className.pascalCase}}{{else}}{{{type.className}}}{{/if}}{{#if isCollection}}>{{/if}}{{#unless type.isDomainClassType}}{{#if isNullable}}>{{/if}}{{/unless}} {{fieldName.pascalCase}}{{#if isCollection}}s{{/if}} { get; set; }
+        public {{#unless type.isDomainClassType}}{{#if isNullable}}Nullable<{{/if}}{{/unless}}{{#if isCollection}}List<{{/if}}{{#if type.isDomainClassType}}{{type.className.pascalCase}}{{else}}{{{type.className}}}{{/if}}{{#if isCollection}}>{{/if}}{{#unless type.isDomainClassType}}{{#if isNullable}}>{{/if}}{{/unless}} {{fieldName.pascalCase}}{{#if isCollection}}List{{/if}} { get; set; }
     {{/each}}
     }
 }

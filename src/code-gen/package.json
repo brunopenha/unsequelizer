@@ -27,6 +27,7 @@
   "license": "MIT",
   "dependencies": {
     "change-case": "^3.0.0",
+    "commander": "^2.9.0",
     "handlebars": "^4.0.5",
     "mkdirp": "^0.5.1",
     "rimraf": "^2.5.2",
