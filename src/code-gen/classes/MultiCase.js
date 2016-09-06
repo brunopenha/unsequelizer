@@ -3,39 +3,39 @@ const changeCase = require('change-case')
 module.exports =
 
 class MultiCase {
-  constructor(word) {
-    this.word = word
+  constructor(string) {
+    this.string = string
   }
 
-  clone() { return new MultiCase(this.word) }
+  clone() { return new MultiCase(this.string) }
 
-  set word(value) { this._word = String(value) }
-  get word() { return this._word }
+  set string(value) { this._string = String(value) }
+  get string() { return this._string }
 
-  toString() { return this._word }
-  valueOf() { return this._word }
+  toString() { return this._string }
+  valueOf() { return this._string }
 
-  get paramCase() { return changeCase.paramCase(this.word) }
+  get paramCase() { return changeCase.paramCase(this.string) }
 
-  get pascalCase() { return changeCase.pascalCase(this.word) }
+  get pascalCase() { return changeCase.pascalCase(this.string) }
 
-  get lowerCase() { return changeCase.lowerCase(this.word) }
+  get lowerCase() { return changeCase.lowerCase(this.string) }
 
-  get upperCase() { return changeCase.upperCase(this.word) }
+  get upperCase() { return changeCase.upperCase(this.string) }
 
-  get headerCase() { return changeCase.headerCase(this.word) }
+  get headerCase() { return changeCase.headerCase(this.string) }
 
-  get pathCase() { return changeCase.pathCase(this.word) }
+  get pathCase() { return changeCase.pathCase(this.string) }
 
-  get sentenceCase() { return changeCase.sentenceCase(this.word) }
+  get sentenceCase() { return changeCase.sentenceCase(this.string) }
 
-  get snakeCase() { return changeCase.snakeCase(this.word) }
+  get snakeCase() { return changeCase.snakeCase(this.string) }
 
-  get camelCase() { return changeCase.camelCase(this.word) }
+  get camelCase() { return changeCase.camelCase(this.string) }
 
-  get dotCase() { return changeCase.dotCase(this.word) }
+  get dotCase() { return changeCase.dotCase(this.string) }
 
-  get constantCase() { return changeCase.constantCase(this.word) }
+  get constantCase() { return changeCase.constantCase(this.string) }
 
   get namespaceLowerCase() { return this.dotCase }
 

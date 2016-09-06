@@ -8,7 +8,6 @@ const mkdirp = require('mkdirp')
 const rimraf = require('rimraf')
 const changeCase = require('change-case')
 const sqlServerParse = require('./parsers/sql-server-parser')
-const readlineSync = require('readline-sync')
 
 // CLASSES
 const ClassField = require('./classes/ClassField')
@@ -38,8 +37,8 @@ cli
   .version('0.0.1')
 
   // DUMP DEFS
-cli.command('dumpdefs <sql_filename> <aggregation_definitions_filename>')
-  .description('Dump aggregation definitions file.')
+cli.command('dumpdefs <sql_filename> <desired_dump_filename>')
+  .description('Dump aggregation definitions file. Inform the desired dump filename.')
   .action(function(sqlFilename, defsFilename) {
     globalIsDumpMode = true
     globalSqlFilename = sqlFilename
@@ -134,20 +133,6 @@ function main() {
         process.exit(0)
       }
 
-      // Reiterate mapping supertypes
-      classes.forEach(targetClass => {
-
-        if (!targetClass.supertype) return;
-
-        const possibleSupertype = classes.find(possibleSupertype => possibleSupertype.className.snakeCase === targetClass.supertype.className.snakeCase)
-        if (possibleSupertype) targetClass.supertype = possibleSupertype
-
-        targetClass.fields.forEach(field => {
-          const possibleFieldType = classes.find(possibleFieldType => possibleFieldType.className.snakeCase === field.type.className.snakeCase)
-          if (possibleFieldType) field.type = possibleFieldType
-        })
-      })
-
       // RESOLVE AGGREGATED CLASS FIELDS
       const fieldAggregations = AggregationRegister.listFieldAggregations()
       classes.forEach(classDefinition => {
@@ -161,6 +146,22 @@ function main() {
             }
           }
         }
+      })
+
+      // REITERATE MAPPING DOMAIN CLASSES TO TYPES
+      classes.forEach(targetClass => {
+
+        if (!targetClass.supertype) return;
+
+        // Map supertype
+        const possibleSupertype = classes.find(possibleSupertype => possibleSupertype.className.snakeCase === targetClass.supertype.className.snakeCase)
+        if (possibleSupertype) targetClass.supertype = possibleSupertype
+
+        // Map fields' types
+        targetClass.fields.forEach(field => {
+          const possibleFieldType = classes.find(possibleFieldType => possibleFieldType.className.snakeCase === field.type.className.snakeCase)
+          if (possibleFieldType) field.type = possibleFieldType
+        })
       })
 
       globalPlatformsDefinitions.forEach(language => {
@@ -190,7 +191,7 @@ function generatePlatformFile(pack, classes, language) {
 
         if (classDefinition.isAssociative) return;
 
-        const languageClass = classDefinition.cloneForLanguage(language)
+        const languageClass = cloneForLanguage(language, classDefinition, classes)
 
         languageClass.namespace = pack
 
@@ -204,6 +205,19 @@ function generatePlatformFile(pack, classes, language) {
     })
   })
 }
+
+function cloneForLanguage(language, classDef, classes) { // TODO create Class mapper for cleaner class definition
+    const clone = classDef.clone()
+    clone.namespace = clone._namespace || language.defaultNamespace
+    if (language.sqlDictionary) {
+       clone./*do not remove this underscore*/_fields.forEach(field => {
+         if (!field.type.isDomainClassType) field.type = new Class(language.sqlDictionary[field.type.className.upperCase.trim()] || 'UNDEFINED_SQL_TYPE_MAPPING')
+         if (language.nullExceptionDictionary && language.nullExceptionDictionary.indexOf(field.type.className.toString()) !== -1) field.isNullable = false
+      })
+    }
+    return clone
+}
+
 
 class ForeignKey {
   constructor(table, foreignColumn, foreignTableName) {
