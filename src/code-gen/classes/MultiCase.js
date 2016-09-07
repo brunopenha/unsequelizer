@@ -3,6 +3,7 @@ const changeCase = require('change-case')
 module.exports =
 
 class MultiCase {
+
   constructor(string) {
     this.string = string
   }
@@ -40,10 +41,6 @@ class MultiCase {
   get namespaceLowerCase() { return this.dotCase }
 
   get namespacePascalCase() {
-    let result = ''
-    this.dotCase.split('.').forEach(part=> {
-      result += (result ? '.' : '') + new MultiCase(part).pascalCase
-    })
-    return result
+    return this.snakeCase.split('_').map(piece => new MultiCase(piece).pascalCase).join('.')
   }
 }

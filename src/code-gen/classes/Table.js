@@ -3,14 +3,16 @@ const changeCase = require('change-case')
 module.exports =
 
 class Table {
-    constructor(schema, name, columns, constraints) {
-        this.schema = schema || null
-        this.name = name
-        this.columns = columns || []
-        this.constraints = constraints || []
+    constructor(schema, name, columns = null, constraints = null) {
+        this.schema = schema // string
+        this.name = name // string
+        this.columns = columns
+        this.constraints = constraints
     }
 
-    getFirstForeignReference() {
-        return this.foreignReferences && this.foreignReferences.length ? this.foreignReferences[0].entityName : '';
-    }
+    get columns() { return this._columns || (this._columns = []) }
+    set columns(value) { this._columns = value }
+
+    get constraints() { return this._constraints || (this._constraints = []) }
+    set constraints(value) { this._constraints = value }
 }

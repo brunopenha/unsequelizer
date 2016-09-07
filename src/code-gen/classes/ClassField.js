@@ -4,12 +4,13 @@ module.exports =
 
 class ClassField {
 
-    constructor(fieldName, type, isNullable, isCollection, access) {
+    constructor(fieldName, type, isNullable, isCollection, access, isClassIdentifier) {
         this.fieldName = fieldName
         this.type = type
         this.isNullable = isNullable
         this.isCollection = isCollection
         this.access = access
+        this.isClassIdentifier = isClassIdentifier
     }
 
     set fieldName(value) { this._fieldName = value }
@@ -27,5 +28,8 @@ class ClassField {
     set access(value) { this._access = value }
     get access() { return access ? new MultiCase(this._access) : null }
 
-    clone() { return new ClassField(this._fieldName, this._type, this._isNullable, this._isCollection, this._access) }
+    set isClassIdentifier(value) { this._isClassIdentifier = !! value }
+    get isClassIdentifier() { return this._isClassIdentifier }
+
+    clone() { return new ClassField(this._fieldName, this._type, this._isNullable, this._isCollection, this._access, this._isClassIdentifier) }
 }

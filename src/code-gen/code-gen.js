@@ -64,7 +64,7 @@ cli.command('gen <sql_filename> <aggregation_definitions_filename>')
 
         const definition = AggregationDefinition.parseDefinition(line)
         if (definition) {
-          const key = `${definition.referencingTable}.${definition.foreignFieldName} ${definition.referencedTable}`
+          const key = `${definition.referencingTable}.${definition.foreignFieldName} ${definition.foreignTable}`
           if (definitions.has(key)) {
             console.log(`Duplicated aggregation definition for: ${key}`)
             duplicated = true
@@ -105,6 +105,8 @@ function main() {
 
       const parsedData = sqlServerParse(data)
       const classes = [];
+
+      console.log(JSON.stringify(parsedData))
 
       // Map table to classes
       if (parsedData) parsedData.forEach(table => classes.push(mapTable2Class(table)))
@@ -183,30 +185,32 @@ function generatePlatformFile(pack, classes, language) {
     else console.log('FOUND', templatePath + language.folderName + '.hbs');
 
     mkdirp(languageOutputFolder, (err) => {
-      if (err) return console.error(err)
+      if (err) return console.error(`COULD NOT CREATE OUTPUT FOLDER ${languageOutputFolder}.`)
 
       const languageWriter = Handlebars.compile(template)
+
+      console.log(`Writing ${language.name} ${pack}...`)
 
       classes.forEach(classDefinition => {
 
         if (classDefinition.isAssociative) return;
 
-        const languageClass = cloneForLanguage(language, classDefinition, classes)
+        const languageClass = mapClass2Platform(language, classDefinition, classes)
 
         languageClass.namespace = pack
 
         const file = new File(languageOutputFolder, Handlebars.compile(language.packages[pack])(new MultiCase(languageClass.className)), languageWriter(languageClass))
 
         fs.writeFile(file.path + file.name, file.content, err => {
-          if (err) return console.log(file.path, err);
-          console.log(`OK\t${file.path + file.name}`)
+          if (err) return console.log(`COULD NOT WRITE FILE ${file.name}`);
+
         })
       })
     })
   })
 }
 
-function cloneForLanguage(language, classDef, classes) { // TODO create Class mapper for cleaner class definition
+function mapClass2Platform(language, classDef, classes) { // TODO create Class mapper for cleaner class definition
     const clone = classDef.clone()
     clone.namespace = clone._namespace || language.defaultNamespace
     if (language.sqlDictionary) {
@@ -254,17 +258,17 @@ function mapTable2Class(table) {
 
         // THIS FK COMPOSES PRIMARY KEY?
         if (composesPrimary) {
-          const primaryForeignKey = new ForeignKey(table, foreignColumn, constraint.referencedTable)
+          const primaryForeignKey = new ForeignKey(table, foreignColumn, constraint.foreignTable)
 
           // WHILE SIMPLE PK FK
           if (possibleSupertype == null) possibleSupertype = primaryForeignKey
 
           // COMPOSITE PK FK
-          else if (possibleSupertype !== constraint.referencedTable) associativeTablePKs.push(primaryForeignKey)
+          else if (possibleSupertype !== constraint.foreignTable) associativeTablePKs.push(primaryForeignKey)
         }
         else { // NON PRIMARY FK
 
-          const aggregationDefinition = resolveAggregationDefinition(table.name, constraint.referencedTable, foreignKey)
+          const aggregationDefinition = resolveAggregationDefinition(table.name, constraint.foreignTable, foreignKey)
 
           if (!aggregationDefinition) return
 
@@ -272,7 +276,7 @@ function mapTable2Class(table) {
 
             case AggregationTypeEnum.AGGREGATED_BY_ONE:
               AggregationRegister.registerFieldAggregation(
-                constraint.referencedTable,
+                constraint.foreignTable,
                 new ClassField(
                   table.name, // fieldName
                   new Class(table.name, true), // type
@@ -284,7 +288,7 @@ function mapTable2Class(table) {
 
             case AggregationTypeEnum.AGGREGATED_BY_MANY:
               AggregationRegister.registerFieldAggregation(
-                constraint.referencedTable,
+                constraint.foreignTable,
                 new ClassField(
                   table.name, // fieldName
                   new Class(table.name, true), // type
@@ -297,7 +301,7 @@ function mapTable2Class(table) {
             case AggregationTypeEnum.AGGREGATES_ONE:
               fields.push(new ClassField(
                 stripIdentifier(foreignColumn.name), // fieldName
-                new Class(constraint.referencedTable, true), // type
+                new Class(constraint.foreignTable, true), // type
                 foreignColumn.isNullable, // isNullable?
                 false // isCollection
               ))
@@ -306,7 +310,7 @@ function mapTable2Class(table) {
             case AggregationTypeEnum.AGGREGATES_MANY:
               fields.push(new ClassField(
                 stripIdentifier(foreignColumn.name), // fieldName
-                new Class(constraint.referencedTable, true), // type
+                new Class(constraint.foreignTable, true), // type
                 foreignColumn.isNullable, // isNullable?
                 true // isCollection
               ))
@@ -398,22 +402,22 @@ function stripIdentifier(fieldName) {
   return fieldName.replace(/(?:\b|_|\s)id(?:\b|_|\s)/i, '');
 }
 
-function resolveAggregationDefinition(referencingTable, referencedTable, foreignFieldName) {
+function resolveAggregationDefinition(referencingTable, foreignTable, foreignFieldName) {
 
-  if (globalIsDumpMode) AggregationRegister.registerUnresolvedAggregation(new AggregationDefinition(referencingTable, referencedTable, foreignFieldName))
+  if (globalIsDumpMode) AggregationRegister.registerUnresolvedAggregation(new AggregationDefinition(referencingTable, foreignTable, foreignFieldName))
   else {
-    //console.log(referencingTable, referencedTable, foreignFieldName)
+    //console.log(referencingTable, foreignTable, foreignFieldName)
     const definition = globalAggregationDefinitions.find(definition =>
       definition.referencingTable === referencingTable &&
-      definition.referencedTable  === referencedTable &&
+      definition.foreignTable  === foreignTable &&
       definition.foreignFieldName === foreignFieldName
     )
 
   //  console.log(definition)
 
     if (!definition) {
-      AggregationRegister.registerUnresolvedAggregation(new AggregationDefinition(referencingTable, referencedTable, foreignFieldName))
-      return console.log(`Undefined aggregation: ${referencingTable}.${foreignFieldName} <-> ${referencedTable}`)
+      AggregationRegister.registerUnresolvedAggregation(new AggregationDefinition(referencingTable, foreignTable, foreignFieldName))
+      return console.log(`Undefined aggregation: ${referencingTable}.${foreignFieldName} <-> ${foreignTable}`)
     }
     return definition
   }
