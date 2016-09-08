@@ -111,7 +111,7 @@ function mapTable2Class(table, aggregationRegister, isOnDumpMode = false) {
 
           switch(aggregationDefinition.aggregationType) {
 
-            case AggregationTypeEnum.AGGREGATED_BY_ONE:
+            case AggregationTypeEnum.AGGREGATED_ONCE_BY:
               aggregationRegister.registerFieldAggregation(column.foreignRef.foreignTable,
 
                 // fieldName, type, isNullable, isCollection, access, isClassIdentifier
@@ -119,7 +119,7 @@ function mapTable2Class(table, aggregationRegister, isOnDumpMode = false) {
               )
               break
 
-            case AggregationTypeEnum.AGGREGATED_BY_MANY:
+            case AggregationTypeEnum.MULTI_AGGREGATED_BY:
               aggregationRegister.registerFieldAggregation(column.foreignRef.foreignTable,
 
                 // fieldName, type, isNullable, isCollection, access, isClassIdentifier
@@ -168,14 +168,14 @@ function processAssociative(table, columm) {
 
   switch(aggregationDefinition.aggregationType) {
 
-    case AggregationTypeEnum.AGGREGATED_BY_ONE:
+    case AggregationTypeEnum.AGGREGATED_ONCE_BY:
       fields.push(
         // fieldName, type, isNullable, isCollection, access, isClassIdentifier
         new ClassField(stripIdentifier(columm.name), new Class(columm.type, false), columm.isNullable, false)
       )
       break
 
-    case AggregationTypeEnum.AGGREGATED_BY_MANY:
+    case AggregationTypeEnum.MULTI_AGGREGATED_BY:
       fields.push(
         // fieldName, type, isNullable, isCollection, access, isClassIdentifier
         new ClassField(stripIdentifier(columm.name), new Class(columm.type, false), columm.isNullable, true)
@@ -219,7 +219,7 @@ function resolveAggregationDefinition(referencingTable, columnName, foreignTable
 
     if (!definition) {
       aggregationRegister.registerAggregationDefinition(new AggregationDefinition(referencingTable, foreignTable, columnName))
-      return console.log(`Undefined aggregation: ${referencingTable}.${columnName} <-> ${foreignTable}`)
+      return console.log(`UNDEFINED AGGREGATION: ${referencingTable}.${columnName} <-> ${foreignTable}`)
     }
     return definition
   }
