@@ -43,9 +43,9 @@ class Class {
         this._className,
         this._isDomainClassType,
         this._namespace,
-        this.fields,
+        this.fields.map(field => field.clone()),
         this._supertype,
-        this.dependencies,
+        this.dependencies.slice(0),
         this._isAssociative,
         this._access
       )

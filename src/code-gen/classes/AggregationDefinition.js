@@ -31,20 +31,19 @@ class AggregationDefinition {
     }
 
     get isResolved() {
-      return !!(this.referencingTable  &&
-      this.foreignTable  &&
-      this.foreignFieldName &&
-      this.aggregationType)
+      return !!(this.referencingTable && this.foreignTable && this.foreignFieldName && this.aggregationType)
     }
 
-    static listPossibleDefinitions(aggregationDefinition) {
+    static listPossibleDefinitions(aggrDef) {
       const possibilities = []
-      if (aggregationDefinition.isResolved === false) {
+      if (aggrDef.isResolved === false) {
         for (const aggregationType in AggregationTypeEnum)
-          possibilities.push(`${aggregationDefinition.referencingTable}.${aggregationDefinition.foreignFieldName} ${aggregationType} ${aggregationDefinition.foreignTable}`)
+          possibilities.push(
+            `${aggrDef.referencingTable}.${aggrDef.foreignFieldName} ${aggregationType} ${aggrDef.foreignTable}`)
       }
       else {
-        possibilities.push(`${aggregationDefinition.referencingTable}.${aggregationDefinition.foreignFieldName} ${aggregationDefinition.aggregationType} ${aggregationDefinition.foreignTable}`)
+        possibilities.push(
+          `${aggrDef.referencingTable}.${aggrDef.foreignFieldName} ${aggrDef.aggregationType} ${aggrDef.foreignTable}`)
       }
       return possibilities
     }

@@ -40,6 +40,8 @@ class MultiCase {
 
   get namespaceLowerCase() { return this.dotCase }
 
+  get compactUpperCase() { return this.snakeCase.replace(/\_/g, '').toUpperCase() }
+
   get namespacePascalCase() {
     return this.snakeCase.split('_').map(piece => new MultiCase(piece).pascalCase).join('.')
   }

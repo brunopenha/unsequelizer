@@ -1,37 +1,26 @@
 {{#each dependencies}}
 using {{namespace}};
 {{/each}}
-using Dlp.Buy4.Onboarding.Member.Core.Models;
-using Dlp.Buy4.Onboarding.Member.Core.Models.Enums;
-using Dlp.Buy4.Onboarding.Member.Core.Constraints;
-using Dlp.Buy4.Onboarding.Member.Core.Properties;
-using Dlp.Buy4.Onboarding.Member.Core.Services.DataContracts;
-using System;
-using System.Collections.Generic;
 
-namespace Dlp.Buy4.Onboarding.Member.Core.Services.DataValidators
+namespace {{namespace.namespacePascalCase}}
 {
 
     public sealed class {{className.pascalCase}}Validator : AbstractDataValidator<{{className.pascalCase}}>
     {
 
-      public override List<ResultError> Validate({{className.pascalCase}} {{className.camelCase}})
+      public override List<ResultError> Validate({{className.pascalCase}} {{className.camelCase}}, List<ResultError> validationResults)
       {
-          List<ResultError> validationResults = new List<resultErrors>();
 
-          List<ResultError> errors = Validate{{className.pascalCase}}({{className.camelCase}});
-          if (errors != null) validationResults.addRange(errors);
-
-          if ({{className.camelCase}} == null) return;
+          Validate{{className.pascalCase}}({{className.camelCase}}, validationResults);
 
       {{#each fields}}
-          {{#if type.isDomainClassType}}
-            if ({{className.camelCase}}.{fieldName.pascalCase}}{{#if isCollection}}List{{/if}} != null)
-            {
-                errors = Validate{{type.className.pascalCase}}({{className.camelCase}})
-                if (errors != null) validationResults.addRange(errors);
-            }
-          {{/if}}
+        {{#if @first}}
+          if ({{../className.camelCase}} == null) return;
+        {{/if}}
+        {{#if type.isDomainClassType}}
+        
+          if ({{../className.camelCase}}.{{fieldName.pascalCase}}{{#if isCollection}}List{{/if}} != null) Validate{{type.className.pascalCase}}({{../className.camelCase}}, validationResults);
+        {{/if}}
       {{/each}}
 
           return validationResults;
@@ -41,155 +30,63 @@ namespace Dlp.Buy4.Onboarding.Member.Core.Services.DataValidators
       /// Validates <see cref="{{className.pascalCase}}"/> and its details.
       /// </summary>
       /// <param name="{{className.camelCase}}">The object to be validated.</param>
-      private static void Validate{{className.pascalCase}}({{className.pascalCase}} {{className.camelCase}})
+      private static void Validate{{className.pascalCase}}({{className.pascalCase}} {{className.camelCase}}, List<ResultError> validationResults)
       {
-          List<ResultErrors> validationResults = new List<ResultErrors>();
 
           if (ValidateMandatoryField({{className.camelCase}}, validationResults, Resources.VLD_{{className.UPPERCASE}}_MANDATORY, "VLD_{{className.UPPERCASE}}_MANDATORY"))
           {
-              // InstitutionKey is mandatory
-              ValidateMandatoryField(business.InstitutionKey, operationResult, Resources.VLD_BUSINESS_INSTITUTIONKEY_MANDATORY, "VLD_BUSINESS_INSTITUTIONKEY_MANDATORY");
+            {{#each fields}}
+              {{#if isNullable}}
+                {{#ifCond type.className "==" 'string'}}
 
-              // CountryKey is mandatory
-              ValidateMandatoryField(business.CountryKey, operationResult, Resources.VLD_BUSINESS_COUNTRYKEY_MANDATORY, "VLD_BUSINESS_COUNTRYKEY_MANDATORY");
-
-              // BusinessTaxId is mandatory
-              if (ValidateMandatoryField(business.BusinessTaxId, operationResult, Resources.VLD_BUSINESS_TAXID_MANDATORY, "VLD_BUSINESS_TAXID_MANDATORY"))
+              // Validate {{fieldName.pascalCase}}
+              if (string.IsNullOrWhiteSpace({{../className.camelCase}}.{{fieldName.pascalCase}}) == false)
               {
-                  ValidateExpression(business.BusinessTaxId.Length <= ModelFieldsConstraints.Business.TaxIdMaxLength, operationResult, Resources.VLD_BUSINESS_TAXID_ABOVELIMIT, "VLD_BUSINESS_TAXID_ABOVELIMIT");
+                  ValidateExpression({{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength, validationResults, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT");
               }
+                {{else}}
 
-              // LegalName is mandatory
-              if (ValidateMandatoryField(business.LegalName, operationResult, Resources.VLD_BUSINESS_LEGALNAME_MANDATORY, "VLD_BUSINESS_LEGALNAME_MANDATORY"))
+              // Validate {{fieldName.pascalCase}}
+              if ({{../className.camelCase}}.{{fieldName.pascalCase}} != null)
               {
-                  ValidateExpression(business.LegalName.Length <= ModelFieldsConstraints.Business.BusinessTradeNameMaxLength, operationResult, Resources.VLD_BUSINESS_LEGALNAME_ABOVELIMIT, "VLD_BUSINESS_LEGALNAME_ABOVELIMIT");
+                  // TODO validate this?
               }
+                {{/ifCond}}
+              {{else}}
+                {{#ifCond type.className "==" 'string'}}
 
-              // TradeName is mandatory
-              if (ValidateMandatoryField(business.TradeName, operationResult, Resources.VLD_BUSINESS_TRADENAME_MANDATORY, "VLD_BUSINESS_TRADENAME_MANDATORY"))
+              // {{fieldName.pascalCase}} is mandatory
+              if (ValidateMandatoryField({{../className.camelCase}}.{{fieldName.pascalCase}}, validationResults, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY"))
               {
-                  ValidateExpression(business.TradeName.Length <= ModelFieldsConstraints.Business.BusinessTradeNameMaxLength, operationResult, Resources.VLD_BUSINESS_TRADENAME_ABOVELIMIT, "VLD_BUSINESS_TRADENAME_ABOVELIMIT");
+                  ValidateExpression({{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength, validationResults, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT");
               }
+                {{else}}
 
-              if (string.IsNullOrWhiteSpace(business.HeadquartersTaxId) == false)
-              {
-                  // Validate headquarter's tax ID length
-                  ValidateExpression(business.HeadquartersTaxId.Length <= ModelFieldsConstraints.Business.TaxIdMaxLength, operationResult, Resources.VLD_BUSINESS_HEADQUARTERSTAXID_ABOVELIMIT, "VLD_BUSINESS_HEADQUARTERSTAXID_ABOVELIMIT");
-              }
-
-              if (string.IsNullOrWhiteSpace(business.Municipalnscription) == false)
-              {
-                  // Validate municipal inscription length
-                  ValidateExpression(business.Municipalnscription.Length <= ModelFieldsConstraints.Business.MunicipalInscriprionMaxLength, operationResult, Resources.VLD_BUSINESS_MUNICIPALNSCRIPTION_ABOVELIMIT, "VLD_BUSINESS_MUNICIPALNSCRIPTION_ABOVELIMIT");
-              }
-
-              if (string.IsNullOrWhiteSpace(business.StateInscription) == false)
-              {
-                  // Validate state inscription length
-                  ValidateExpression(business.StateInscription.Length <= ModelFieldsConstraints.Business.StateInscriprionMaxLength, operationResult, Resources.VLD_BUSINESS_STATEINSCRIPTION_ABOVELIMIT, "VLD_BUSINESS_STATEINSCRIPTION_ABOVELIMIT");
-              }
-
-              // Validate LegalPersonality input value
-              if (ValidateMandatoryField(business.LegalPersonality, operationResult, Resources.VLD_BUSINESS_LEGALPERSONALITY_MANDATORY, "VLD_BUSINESS_LEGALPERSONALITY_MANDATORY"))
-              {
-                  ValidateMandatoryField(Enum.IsDefined(typeof(LegalPersonalityEnum), (int) business.LegalPersonality.LegalPersonalityId), operationResult, Resources.VLD_BUSINESS_LEGALPERSONALITY_INVALID, "VLD_BUSINESS_LEGALPERSONALITY_INVALID");
-              }
-
-              // Validate BusinessTypeId
-              if (string.IsNullOrWhiteSpace(business.StateInscription) == false)
-              {
-                  ValidateMandatoryField(default(BusinessTypeEnum), business.BusinessType.BusinessTypeId, operationResult, Resources.VLD_BUSINESS_BUSINESSTYPEID_INVALID, "VLD_BUSINESS_BUSINESSTYPEID_INVALID");
-              }
+              // {{fieldName.pascalCase}} is mandatory
+              ValidateMandatoryField({{../className.camelCase}}.{{fieldName.pascalCase}}, validationResults, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY");
+                {{/ifCond}}
+              {{/if}}
+            {{/each}}
           }
       }
 
 {{#each fields}}
     {{#if type.isDomainClassType}}
-      private static List<ResultError> Validate{{fieldName.pascalCase}}({{className.pascalCase}} {{className.camelCase}})
+      private static void Validate{{fieldName.pascalCase}}({{../className.pascalCase}} {{../className.camelCase}}, List<ResultError> validationResults)
       {
-          {{#if isNullable}}if({{className.camelCase}}.{{fieldName.pascalCase}} == null) return null;{{/if}}
-
-          List<ResultError> errors = new List<ResultError>();
+          {{#if isNullable}}if({{../className.camelCase}}.{{fieldName.pascalCase}} == null) return null;{{/if}}
 
           {{type.className.pascalCase}}Validator {{type.className.camelCase}}Validator = new {{type.className.pascalCase}}Validator();
 
           {{#if isCollection}}
-          foreach ({{type.className.pascalCase}} {{fieldName.pascalCase}} in {{className.camelCase}}.{{fieldName.pascalCase}}List)
+          foreach ({{type.className.pascalCase}} {{fieldName.pascalCase}} in {{../className.camelCase}}.{{fieldName.pascalCase}}List)
           {
-              {{fieldName.pascalCase}}.{{className.pascalCase}}Id = {{className.camelCase}}.{{className.pascalCase}}Id;
-              {{type.className.camelCase}}Validator.Validate({{fieldName.pascalCase}});
+              {{fieldName.pascalCase}}.{{../className.pascalCase}}Id = {{../className.camelCase}}.{{../className.pascalCase}}Id;
+              {{type.className.camelCase}}Validator.Validate({{fieldName.pascalCase}}, validationResults);
           }
           {{/if}}
       }
     {{/if}}
 {{/each}}
-
-      private static void ValidateCreateOrganizationBankAccounts(Organization organization, OperationResult operationResult)
-      {
-          CreateOrganizationBankAccountValidator organizationBankAccountValidator = new CreateOrganizationBankAccountValidator();
-
-          foreach (OrganizationBankAccount bankAccount in organization.BankAccountList)
-          {
-              bankAccount.OrganizationId = organization.OrganizationId;
-              organizationBankAccountValidator.Validate(bankAccount, operationResult);
-          }
-      }
-
-      private static void ValidateCreateContacts(Business business, OperationResult operationResult)
-      {
-          CreateBusinessContactValidator businessContactValidator = new CreateBusinessContactValidator();
-
-          foreach (BusinessContact businessContact in business.BusinessContactList)
-          {
-              businessContact.BusinessOrganizationId = business.OrganizationId;
-              businessContactValidator.Validate(businessContact, operationResult);
-          }
-      }
-
-      private static void ValidateCreateAddress(Business business, OperationResult operationResult)
-      {
-          CreateBusinessAddressValidator businessAddressValidator = new CreateBusinessAddressValidator();
-
-          foreach (BusinessAddress businessAddress in business.BusinessAddressList)
-          {
-              businessAddress.BusinessOrganizationId = business.OrganizationId;
-              businessAddressValidator.Validate(businessAddress, operationResult);
-          }
-      }
-
-      private static void ValidateCreateBusinessEconomicActivityCodes(Business business, OperationResult operationResult)
-      {
-          CreateBusinessEconomicActivityCodeValidator businessEconomicActivityCodeValidator = new CreateBusinessEconomicActivityCodeValidator();
-
-          foreach (BusinessEconomicActivityCode businessEconomicActivityCode in business.BusinessEconomicActivityCodeList)
-          {
-              businessEconomicActivityCode.BusinessOrganizationId = business.OrganizationId;
-              businessEconomicActivityCodeValidator.Validate(businessEconomicActivityCode, operationResult);
-          }
-      }
-
-      private static void ValidateCreateBusinessHours(Business business, OperationResult operationResult)
-      {
-          CreateBusinessHoursValidator businessHoursValidator = new CreateBusinessHoursValidator();
-
-          foreach (BusinessHours businessHours in business.BusinessHoursList)
-          {
-              businessHours.BusinessOrganizationId = business.OrganizationId;
-              businessHoursValidator.Validate(businessHours, operationResult);
-          }
-      }
-
-
-        /// <summary>
-        /// TODO: write {{className.pascalCase}} constructor summary
-        /// </summary>
-        public {{className.pascalCase}}() { }
-    {{#each fields}}
-
-        /// <summary>
-        /// TODO: write {{../className.pascalCase}}.{{fieldName.pascalCase}}{{#if isCollection}}s{{/if}} summary
-        /// </summary>
-        public {{#unless type.isDomainClassType}}{{#if isNullable}}Nullable<{{/if}}{{/unless}}{{#if isCollection}}List<{{/if}}{{#if type.isDomainClassType}}{{type.className.pascalCase}}{{else}}{{{type.className}}}{{/if}}{{#if isCollection}}>{{/if}}{{#unless type.isDomainClassType}}{{#if isNullable}}>{{/if}}{{/unless}} {{fieldName.pascalCase}}{{#if isCollection}}List{{/if}} { get; set; }
-    {{/each}}
     }
 }

@@ -4,7 +4,7 @@ module.exports =
 
 class ClassField {
 
-    constructor(fieldName, type, isNullable, isCollection, access, isClassIdentifier) {
+    constructor(fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false) {
         this.fieldName = fieldName
         this.type = type
         this.isNullable = isNullable

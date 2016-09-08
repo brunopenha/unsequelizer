@@ -22,16 +22,20 @@ class AggregationRegister {
     return this._register || (this._register = {})
   }
 
-  static registerUnresolvedAggregation(aggregationDefinition) {
+  static registerAggregationDefinition(aggregationDefinition) {
 
-    if (!(aggregationDefinition instanceof AggregationDefinition)) throw new TypeError('aggregationDefinition is not a instance of AggregationDefinition')
+    if (!(aggregationDefinition instanceof AggregationDefinition)) throw new TypeError('aggregationDefinition is not a instance of AggregationDefinition');
 
-    const aggregationDefs = this._aggregationDefs || (this._aggregationDefs = [])
-    aggregationDefs.push(aggregationDefinition)
+    if (!this._aggregationDefs) this._aggregationDefs = []
+
+    this._aggregationDefs.push(aggregationDefinition)
   }
 
   static listUnresolvedAggregation() {
-    if (!this._aggregationDefs) this._aggregationDefs = []
-    return  this._aggregationDefs.slice(0)
+    return this._aggregationDefs ? this._aggregationDefs.filter(definition => definition.isResolved == false) : (this._aggregationDefs = [])
+  }
+
+  static listResolvedAggregation() {
+    return this._aggregationDefs ? this._aggregationDefs.filter(definition => definition.isResolved) : (this._aggregationDefs = [])
   }
 }
