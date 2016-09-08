@@ -6,7 +6,7 @@ const AggregationDefinition = require('./AggregationDefinition')
 
 module.exports =
 
-class SQLProcessor {
+class SqlProcessor {
 
   constructor() {
     this.aggregationRegister = aggregationRegister

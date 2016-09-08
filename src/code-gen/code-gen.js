@@ -48,7 +48,7 @@ const MultiCase = require('./classes/MultiCase')
 const AggregationTypeEnum = require('./classes/AggregationTypeEnum')
 const AggregationDefinition = require('./classes/AggregationDefinition')
 const AggregationRegister = require('./classes/AggregationRegister')
-const SQLProcessor = require('./classes/SQLProcessor')
+const SqlProcessor = require('./classes/SqlProcessor')
 
 // CONSTANTS
 const FILE_PLATFORM_DEFINITIONS = 'platforms-definitions.json'
@@ -138,7 +138,7 @@ function main() {
 
       const parsedData = sqlServerParse(data)
 
-      const classes = SQLProcessor.produceClasses(parsedData, AggregationRegister, globalIsDumpMode)
+      const classes = SqlProcessor.produceClasses(parsedData, AggregationRegister, globalIsDumpMode)
 
       if (globalIsDumpMode) {
 
