@@ -30,7 +30,7 @@ module.exports = function parse(data) {
 
     const tables = []
 
-    multiMatch(data.replace(/(?:\r?\n|\s)+/gim, ' '), REGEX_CREATE_TABLE, table => {
+    multiMatch(data.replace(/[\[\]]/gm, '').replace(/(?:\r?\n|\s)+/gim, ' '), REGEX_CREATE_TABLE, table => {
 
         REGEX_TABLE_SCHEMA_NAME.lastIndex = 0 // RESET INTERNAL INDEX
 
