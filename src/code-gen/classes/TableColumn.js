@@ -3,13 +3,17 @@ const ForeignKey = require('./ForeignKey')
 module.exports =
 
 class TableColumn {
-    constructor(name, type, properties, isNullable, isPrimaryKey, foreignRef = null) {
+    constructor(name, type, isNullable, isPrimaryKey, foreignRef = null, hasDatabaseGeneratedId = false) {
         this.name = name  // string
         this.type = type  // string
         this.isNullable = isNullable      // boolean
         this.isPrimaryKey = isPrimaryKey  // boolean
         this.foreignRef = foreignRef      // ForeignKey
+        this.hasDatabaseGeneratedId = hasDatabaseGeneratedId
     }
+
+    set hasDatabaseGeneratedId(value) { this._hasDatabaseGeneratedId = !! value }
+    get hasDatabaseGeneratedId() { return this._hasDatabaseGeneratedId }
 
     get isNullable() { return this._isNullable }
     set isNullable(value) { this._isNullable = !! value }
@@ -19,7 +23,10 @@ class TableColumn {
 
     get foreignRef() { return this._foreignRef }
     set foreignRef(value) {
-      if (value != null && !(value instanceof ForeignKey)) new TypeReference('foreignRef must be instance of ForeignKey.')
+      if (value != null && !(value instanceof ForeignKey)) {
+        console.log(this)
+        new TypeReference('foreignRef must be instance of ForeignKey.')
+      }
       this._foreignRef = value
     }
 }

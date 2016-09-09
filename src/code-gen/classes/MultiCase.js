@@ -34,6 +34,8 @@ class MultiCase {
 
   get camelCase() { return changeCase.camelCase(this.string) }
 
+  get noCase() { return changeCase.noCase(this.string) }
+
   get dotCase() { return changeCase.dotCase(this.string) }
 
   get constantCase() { return changeCase.constantCase(this.string) }

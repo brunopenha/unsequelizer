@@ -10,7 +10,7 @@ const changeCase = require('change-case')
 const sqlServerParse = require('./parsers/sql-server-parser')
 
 Handlebars.registerHelper('ifCond', function (v1, operator, v2, options) {
-    console.log(arguments)
+    //console.log(arguments)
     switch (operator) {
         case '==':
             return (v1 == v2) ? options.fn(this) : options.inverse(this);

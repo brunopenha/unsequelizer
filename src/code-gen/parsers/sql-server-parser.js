@@ -67,8 +67,10 @@ module.exports = function parse(data) {
                             new TableColumn(
                                 changeCase.snakeCase(name),
                                 changeCase.snakeCase(type),
-                                properties.match(/\bNOT\W+NULL\b/im),
-                                properties.match(/\bPRIMARY\W+KEY\b/im)
+                                properties.match(/\bNOT\W+NULL\b/im) == null,
+                                properties.match(/\bPRIMARY\W+KEY\b/im),
+                                null,
+                                properties.match(/\b(?:IDENTITY|UNIQUEIDENTIFIER)\b/im)
                             )
                         )
                     })

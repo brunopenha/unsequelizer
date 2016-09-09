@@ -1,0 +1,18 @@
+{{#each fields}}
+{{#unless type.isDomainClassType}}
+  {{#if isNullable}}
+    {{#ifCond type.className "==" 'string'}}
+VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT	{{../className.sentenceCase}} {{fieldName.noCase}} length is above limit (max. {0} characters).
+    {{else}}
+VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_INVALID	{{../className.sentenceCase}} {{fieldName.noCase}} {0} is invalid.
+    {{/ifCond}}
+  {{else}}
+    {{#ifCond type.className "==" 'string'}}
+VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY	{{../className.sentenceCase}} {{fieldName.noCase}} is mandatory.
+VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT	{{../className.sentenceCase}} {{fieldName.noCase}} length is above limit (max. {0} characters).
+    {{else}}
+VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY	{{../className.sentenceCase}} {{fieldName.noCase}} is mandatory.
+    {{/ifCond}}
+  {{/if}}
+{{/unless}}
+{{/each}}

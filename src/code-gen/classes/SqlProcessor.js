@@ -114,35 +114,36 @@ function mapTable2Class(table, aggregationRegister, isOnDumpMode = false) {
             case AggregationTypeEnum.AGGREGATED_ONCE_BY:
               aggregationRegister.registerFieldAggregation(column.foreignRef.foreignTable,
 
-                // fieldName, type, isNullable, isCollection, access, isClassIdentifier
-                new ClassField(table.name, new Class(table.name, true), column.isNullable, false)
+                // fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false, hasDatabaseGeneratedId = false
+                new ClassField(table.name, new Class(table.name, true), column.isNullable, false, null, false, column.hasDatabaseGeneratedId)
               )
               break
 
             case AggregationTypeEnum.MULTI_AGGREGATED_BY:
               aggregationRegister.registerFieldAggregation(column.foreignRef.foreignTable,
 
-                // fieldName, type, isNullable, isCollection, access, isClassIdentifier
-                new ClassField(table.name, new Class(table.name, true), column.isNullable, true)
+                // fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false, hasDatabaseGeneratedId = false
+                new ClassField(table.name, new Class(table.name, true), column.isNullable, true, null, false, column.hasDatabaseGeneratedId)
               )
               break
 
             case AggregationTypeEnum.AGGREGATES_ONE:
               fields.push(
-                // fieldName, type, isNullable, isCollection, access, isClassIdentifier
-                new ClassField(stripIdentifier(column.name), new Class(column.foreignRef.foreignTable, true), column.isNullable, false))
+                // fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false, hasDatabaseGeneratedId = false
+                new ClassField(stripIdentifier(column.name), new Class(column.foreignRef.foreignTable, true), column.isNullable, false, null, false, column.hasDatabaseGeneratedId))
             break
 
             case AggregationTypeEnum.AGGREGATES_MANY:
               fields.push(
-                // fieldName, type, isNullable, isCollection, access, isClassIdentifier
-                new ClassField(stripIdentifier(column.name), new Class(column.foreignRef.foreignTable, true), column.isNullable, true))
+                // fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false, hasDatabaseGeneratedId = false
+                new ClassField(stripIdentifier(column.name), new Class(column.foreignRef.foreignTable, true), column.isNullable, true, null, false, column.hasDatabaseGeneratedId))
               break
           }
         }
     }
     // ----- COMMON COLUMN -----
     else {
+      //console.log(column.name, column.isNullable)
       fields.push(
         new ClassField(
           column.name, // fieldName
@@ -150,12 +151,23 @@ function mapTable2Class(table, aggregationRegister, isOnDumpMode = false) {
           column.isNullable, // isNullable?
           false, // isCollection
           null,
-          column.isPrimaryKey
+          column.isPrimaryKey,
+          column.hasDatabaseGeneratedId
         )
       )
     }
   })
-  return new Class(table.name, true, null, fields, possibleSupertypeColumn ? new Class(possibleSupertypeColumn.foreignRef.foreignTable) : null, null, associativeTablePKs.length)
+  // className, isDomainClassType = false, namespace, fields, supertype = null, dependencies = null, isAssociative = false, access = null
+  return new Class(
+    table.name,
+    true,
+    null,
+    fields,
+    possibleSupertypeColumn ? new Class(possibleSupertypeColumn.foreignRef.foreignTable) : null,
+    null,
+    associativeTablePKs.length,
+    null
+  )
 }
 
 function processAssociative(table, columm) {
@@ -170,31 +182,31 @@ function processAssociative(table, columm) {
 
     case AggregationTypeEnum.AGGREGATED_ONCE_BY:
       fields.push(
-        // fieldName, type, isNullable, isCollection, access, isClassIdentifier
-        new ClassField(stripIdentifier(columm.name), new Class(columm.type, false), columm.isNullable, false)
+        // fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false, hasDatabaseGeneratedId = false
+        new ClassField(stripIdentifier(columm.name), new Class(columm.type, false), columm.isNullable, false, null, false, column.hasDatabaseGeneratedId)
       )
       break
 
     case AggregationTypeEnum.MULTI_AGGREGATED_BY:
       fields.push(
-        // fieldName, type, isNullable, isCollection, access, isClassIdentifier
-        new ClassField(stripIdentifier(columm.name), new Class(columm.type, false), columm.isNullable, true)
+        // fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false, hasDatabaseGeneratedId = false
+        new ClassField(stripIdentifier(columm.name), new Class(columm.type, false), columm.isNullable, true, null, false, column.hasDatabaseGeneratedId)
       )
       break
 
     case AggregationTypeEnum.AGGREGATES_ONE:
       aggregationRegister.registerFieldAggregation(primaryForeignKey.foreignTableName,
 
-        // fieldName, type, isNullable, isCollection, access, isClassIdentifier
-        new ClassField(stripIdentifier(primaryForeignKey.foreignTableName), new Class(primaryForeignKey.foreignTableName, true), true, false)
+        // fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false, hasDatabaseGeneratedId = false
+        new ClassField(stripIdentifier(primaryForeignKey.foreignTableName), new Class(primaryForeignKey.foreignTableName, true), true, false, null, false, column.hasDatabaseGeneratedId)
       )
       break
 
     case AggregationTypeEnum.AGGREGATES_MANY:
       aggregationRegister.registerFieldAggregation(primaryForeignKey.foreignTableName,
 
-        // fieldName, type, isNullable, isCollection, access, isClassIdentifier
-        new ClassField(stripIdentifier(primaryForeignKey.foreignTableName), new Class(primaryForeignKey.foreignTableName, true), true, true)
+        // fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false, hasDatabaseGeneratedId = false
+        new ClassField(stripIdentifier(primaryForeignKey.foreignTableName), new Class(primaryForeignKey.foreignTableName, true), true, true, null, false, column.hasDatabaseGeneratedId)
       )
       break
   }

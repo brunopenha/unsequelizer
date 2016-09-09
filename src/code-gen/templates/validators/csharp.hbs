@@ -2,50 +2,71 @@
 using {{namespace}};
 {{/each}}
 
-namespace {{namespace.namespacePascalCase}}
+using System;
+using System.Collections.Generic;
+
+namespace
 {
-
-    public sealed class {{className.pascalCase}}Validator : AbstractDataValidator<{{className.pascalCase}}>
+    /// <summary>
+    /// Validator implementation for the {{className.pascalCase}} domain model entity.
+    /// </summary>
+    public sealed class {{className.pascalCase}}Validator : AbstractValidator<{{className.pascalCase}}>
     {
-
-      public override List<ResultError> Validate({{className.pascalCase}} {{className.camelCase}}, List<ResultError> validationResults)
+      /// <summary>
+      /// Validates <see cref="{{className.pascalCase}}"/> and its details.
+      /// </summary>
+      /// <param name="{{className.camelCase}}">The object to be validated.</param>
+      /// <param name="violatedRules">List of violated validation rules.</param>
+      public override List<ResultDetail> Validate({{className.pascalCase}} {{className.camelCase}}, List<ResultDetail> violatedRules)
       {
+          Validate{{className.pascalCase}}({{className.camelCase}}, violatedRules);
 
-          Validate{{className.pascalCase}}({{className.camelCase}}, validationResults);
+      {{#if supertype}}
+          if ({{className.camelCase}} == null) return violatedRules;
 
+          // Run base entity (entity supertype) validation
+          new Validate{{supertype.className.pascalCase}}().Validate({{className.camelCase}}, violatedRules);
+      {{/if}}
       {{#each fields}}
         {{#if @first}}
-          if ({{../className.camelCase}} == null) return;
+          {{#unless ../supertype}}
+          if ({{../className.camelCase}} == null) return violatedRules;
+          {{/unless}}
         {{/if}}
         {{#if type.isDomainClassType}}
-        
-          if ({{../className.camelCase}}.{{fieldName.pascalCase}}{{#if isCollection}}List{{/if}} != null) Validate{{type.className.pascalCase}}({{../className.camelCase}}, validationResults);
+
+          // Null test for preventing validation fatal exceptions
+          if ({{../className.camelCase}}.{{fieldName.pascalCase}}{{#if isCollection}}List{{/if}} != null) Validate{{type.className.pascalCase}}({{../className.camelCase}}, violatedRules);
         {{/if}}
       {{/each}}
 
-          return validationResults;
+          return violatedRules;
       }
 
       /// <summary>
       /// Validates <see cref="{{className.pascalCase}}"/> and its details.
       /// </summary>
       /// <param name="{{className.camelCase}}">The object to be validated.</param>
-      private static void Validate{{className.pascalCase}}({{className.pascalCase}} {{className.camelCase}}, List<ResultError> validationResults)
+      /// <param name="violatedRules">List of violated validation rules.</param>
+      private static void Validate{{className.pascalCase}}({{className.pascalCase}} {{className.camelCase}}, List<ResultDetail> violatedRules)
       {
-
-          if (ValidateMandatoryField({{className.camelCase}}, validationResults, Resources.VLD_{{className.UPPERCASE}}_MANDATORY, "VLD_{{className.UPPERCASE}}_MANDATORY"))
+          if (ValidateMandatoryField({{className.camelCase}}, violatedRules, Resources.VLD_{{className.compactUpperCase}}_MANDATORY, "VLD_{{className.compactUpperCase}}_MANDATORY"))
           {
             {{#each fields}}
               {{#if isNullable}}
+                {{{type.className}}}, {{{isNullable}}}, {{{fieldName}}}
                 {{#ifCond type.className "==" 'string'}}
-
-              // Validate {{fieldName.pascalCase}}
+              // Validate {{fieldName.pascalCase}} when entered (optional)
               if (string.IsNullOrWhiteSpace({{../className.camelCase}}.{{fieldName.pascalCase}}) == false)
               {
-                  ValidateExpression({{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength, validationResults, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT");
+                  ValidateExpression(
+                      {{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength,
+                      violatedRules,
+                      string.format(Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength),
+                      "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT"
+                  );
               }
                 {{else}}
-
               // Validate {{fieldName.pascalCase}}
               if ({{../className.camelCase}}.{{fieldName.pascalCase}} != null)
               {
@@ -54,36 +75,63 @@ namespace {{namespace.namespacePascalCase}}
                 {{/ifCond}}
               {{else}}
                 {{#ifCond type.className "==" 'string'}}
-
               // {{fieldName.pascalCase}} is mandatory
-              if (ValidateMandatoryField({{../className.camelCase}}.{{fieldName.pascalCase}}, validationResults, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY"))
+              if (ValidateMandatoryField({{../className.camelCase}}.{{fieldName.pascalCase}}, violatedRules, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY"))
               {
-                  ValidateExpression({{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength, validationResults, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT");
+                  // {{fieldName.pascalCase}} length constraint validation
+                  ValidateExpression(
+                      {{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength,
+                      violatedRules,
+                      string.format(Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength),
+                      "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT"
+                  );
               }
                 {{else}}
-
               // {{fieldName.pascalCase}} is mandatory
-              ValidateMandatoryField({{../className.camelCase}}.{{fieldName.pascalCase}}, validationResults, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY");
+              ValidateMandatoryField({{../className.camelCase}}.{{fieldName.pascalCase}}, violatedRules, Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY, "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_MANDATORY");
                 {{/ifCond}}
               {{/if}}
+              {{#unless @last}}
+
+              {{/unless}}
             {{/each}}
           }
       }
-
 {{#each fields}}
     {{#if type.isDomainClassType}}
-      private static void Validate{{fieldName.pascalCase}}({{../className.pascalCase}} {{../className.camelCase}}, List<ResultError> validationResults)
-      {
-          {{#if isNullable}}if({{../className.camelCase}}.{{fieldName.pascalCase}} == null) return null;{{/if}}
 
+      /// <summary>
+      /// Validates details of <see cref="{{fieldName.pascalCase}}"/> when aggregated by {{../className.pascalCase}}.
+      /// </summary>
+      /// <param name="{{className.camelCase}}">The aggregator from which {{fieldName.pascalCase}} field will be validated.</param>
+      /// <param name="violatedRules">List of validation errors.</param>
+      private static void Validate{{fieldName.pascalCase}}({{../className.pascalCase}} {{../className.camelCase}}, List<ResultDetail> violatedRules)
+      {
+          {{#if isNullable}}
+            if({{../className.camelCase}}.{{fieldName.pascalCase}} == null) return null;
+          {{/if}}
+          {{#if isCollection}}
           {{type.className.pascalCase}}Validator {{type.className.camelCase}}Validator = new {{type.className.pascalCase}}Validator();
 
-          {{#if isCollection}}
-          foreach ({{type.className.pascalCase}} {{fieldName.pascalCase}} in {{../className.camelCase}}.{{fieldName.pascalCase}}List)
+          foreach ({{type.className.pascalCase}} {{type.className.camelCase}} in {{../className.camelCase}}.{{fieldName.pascalCase}}List)
           {
-              {{fieldName.pascalCase}}.{{../className.pascalCase}}Id = {{../className.camelCase}}.{{../className.pascalCase}}Id;
-              {{type.className.camelCase}}Validator.Validate({{fieldName.pascalCase}}, validationResults);
+              {{#if ../supertype}}
+                {{#each ../supertype/fields}}
+                  {{#if isClassIdentifier}}
+              {{../../type.className.camelCase}}.{{fieldName.pascalCase}} = {{../../../className.camelCase}}.{{fieldName.pascalCase}};
+                  {{/if}}
+                {{/each}}
+              {{else}}
+                {{#each ../fields}}
+                  {{#if isClassIdentifier}}
+              {{../type.className.camelCase}}.{{fieldName.pascalCase}} = {{../../className.camelCase}}.{{fieldName.pascalCase}};
+                  {{/if}}
+                {{/each}}
+              {{/if}}
+              {{type.className.camelCase}}Validator.Validate({{type.className.camelCase}}, violatedRules);
           }
+          {{else}}
+          new {{type.className.pascalCase}}Validator().Validate({{../className.camelCase}}.{{fieldName.pascalCase}}, violatedRules);
           {{/if}}
       }
     {{/if}}

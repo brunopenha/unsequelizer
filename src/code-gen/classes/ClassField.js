@@ -4,14 +4,18 @@ module.exports =
 
 class ClassField {
 
-    constructor(fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false) {
+    constructor(fieldName, type, isNullable = false, isCollection = false, access = null, isClassIdentifier = false, hasDatabaseGeneratedId = false) {
         this.fieldName = fieldName
         this.type = type
         this.isNullable = isNullable
         this.isCollection = isCollection
         this.access = access
         this.isClassIdentifier = isClassIdentifier
+        this.hasDatabaseGeneratedId = hasDatabaseGeneratedId
     }
+
+    set hasDatabaseGeneratedId(value) { this._hasDatabaseGeneratedId = !! value }
+    get hasDatabaseGeneratedId() { return this._hasDatabaseGeneratedId }
 
     set fieldName(value) { this._fieldName = value }
     get fieldName() { return new MultiCase(this._fieldName) }
@@ -31,5 +35,5 @@ class ClassField {
     set isClassIdentifier(value) { this._isClassIdentifier = !! value }
     get isClassIdentifier() { return this._isClassIdentifier }
 
-    clone() { return new ClassField(this._fieldName, this._type, this._isNullable, this._isCollection, this._access, this._isClassIdentifier) }
+    clone() { return new ClassField(this._fieldName, this._type, this._isNullable, this._isCollection, this._access, this._isClassIdentifier, this._hasDatabaseGeneratedId) }
 }

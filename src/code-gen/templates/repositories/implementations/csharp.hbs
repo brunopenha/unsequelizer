@@ -6,74 +6,193 @@ using System.Linq;
 
 namespace {{namespace.namespacePascalCase}}
 {
+    /// <summary>
+    /// Repository implementation to handle instances of <see cref="{{className.pascalCase}}"/>.
+    /// </summary>
     public sealed class {{className.pascalCase}}Repository : AbstractRepository<{{className.pascalCase}}>, I{{className.pascalCase}}Repository
     {
-        // TODO summary {{className.pascalCase}}Repository constructor
-        /// <inheritdoc/>
+        /// <summary>
+        /// Public constructor
+        /// </summary>
+        /// <param name="dbConnector">Database connector used by this repository implementation.</param>
         public {{className.pascalCase}}Repository(DatasupertypeConnector dbConnector) : supertype(dbConnector) { }
 
         // TODO summary {{className.pascalCase}}Repository.Delete
         /// <inheritdoc/>
         public override int Delete({{className.pascalCase}} entity)
         {
-            string sql = @" DELETE FROM schema.{{className.pascalCase}}
-                            WHERE {{className.pascalCase}}Id = @{{className.pascalCase}}Id";
-
-            return DbConnector.ExecuteNonQuery(sql, new { {{className.pascalCase}}Id = entity.{{className.pascalCase}}Id });
+            {{#if supertype}}
+              {{#each supertype.fields}}
+                {{#if isClassIdentifier}}
+            // Using supertype identifier
+            return Delete(entity.{{fieldName.pascalCase}});
+                {{/if}}
+              {{/each}}
+            {{else}}
+              {{#each fields}}
+                {{#if isClassIdentifier}}
+            return Delete(entity.{{fieldName.pascalCase}});
+                {{/if}}
+              {{/each}}
+            {{/if}}
         }
 
-        // TODO summary {{className.pascalCase}}Repository.Delete
-        /// <inheritdoc/>
+        /// <summary>
+        /// Delete a <see cref="{{className.pascalCase}}"/> based on informed identifier.
+        /// </summary>
+        /// <param name="id">Entity identifier</param>
+        /// <returns>Affected rows</returns>
         public override int Delete(object id)
         {
-            // TODO implement {{className.pascalCase}}Repository.Delete by id
-            throw new NotImplementedException();
+          string sql = @" DELETE FROM schema.{{className.pascalCase}}
+          {{#if supertype}}
+            {{#each supertype.fields}}
+              {{#if isClassIdentifier}}
+                          WHERE {{fieldName.pascalCase}} = @{{fieldName.pascalCase}}";
+
+          // If lines deleted
+          if (0 < DbConnector.ExecuteNonQuery(sql, new { {{fieldName.pascalCase}} = entity.{{fieldName.pascalCase}} }))
+          {
+              // Proceeds with supertype register exclusion
+              return new {{className.pascalCase}}Repository(dbConnector).delete({{fieldName.pascalCase}});
+          }
+
+          return 0;
+              {{/if}}
+            {{/each}}
+          {{else}}
+            {{#each fields}}
+              {{#if isClassIdentifier}}
+                          WHERE {{fieldName.pascalCase}} = @{{fieldName.pascalCase}}";
+
+          return DbConnector.ExecuteNonQuery(sql, new { {{fieldName.pascalCase}} = entity.{{fieldName.pascalCase}} });
+              {{/if}}
+            {{/each}}
+          {{/if}}
         }
 
-        // TODO summary {{className.pascalCase}}Repository.GetById
-        /// <inheritdoc/>
+        /// <summary>
+        /// Get an unique instance of the entity using its database identifier.
+        /// </summary>
+        /// <param name="id">Instance identifier value</param>
+        /// <returns>A instance with the specified identifier</returns>
         public override {{className.pascalCase}} GetById(object id)
         {
+            {{#if supertype}}
+            {{../className.pascalCase}}entity = new {{className.pascalCase}}Repository(dbConnector).GetById(id);
+
+            {{/if}}
             string sql = @" SELECT
+                            {{#if supertype}}
+                              {{#each supertype.fields}}
+                                {{#if isClassIdentifier}}
+                              {{fieldName.pascalCase}}{{#unless @last}},{{/unless}}
+                                {{/if}}
+                              {{/each}}
+                            {{/if}}
                             {{#each fields}}
                               {{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id AS '{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id'{{/if}}{{#unless @last}},{{/unless}}
                             {{/each}}
                             FROM schema.{{className.pascalCase}}
-                            WHERE {{className.pascalCase}}Id = @{{className.pascalCase}}Id";
+            {{#if supertype}}
+              {{#each supertype.fields}}
+                {{#if isClassIdentifier}}
+                            WHERE {{fieldName.pascalCase}} = @{{fieldName.pascalCase}}"; // using supertype identifier
 
-            {{className.pascalCase}} entity = DbConnector.ExecuteReader<{{className.pascalCase}}>(sql, new { {{className.pascalCase}}Id = id }).FirstOrDefault();
+            entity = DbConnector.ExecuteReader<{{../../className.pascalCase}}>(sql, new { ({{fieldName.pascalCase}} = id }).FirstOrDefault()
+                {{/if}}
+              {{/each}}
+            {{else}}
+              {{#each fields}}
+                {{#if isClassIdentifier}}
+                            WHERE {{fieldName.pascalCase}} = @{{fieldName.pascalCase}}";
+
+            entity = DbConnector.ExecuteReader<{{../className.pascalCase}}>(sql, new { ({{fieldName.pascalCase}} = id }).FirstOrDefault()
+                {{/if}}
+              {{/each}}
+            {{/if}}
 
             if (entity == null) throw new DatasupertypeException(DatasupertypeException.CreateGetByIdExceptionMessage("{{className.pascalCase}}", id));
 
             return entity;
         }
 
-        // TODO summary {{className.pascalCase}}Repository.Insert
-        /// <inheritdoc/>
+        /// <summary>
+        /// Insert a new instance of <see cref="{{className.pascalCase}}"/> in the database.
+        /// </summary>
+        /// <param name="entity">Instance of <see cref="{{className.pascalCase}}"/> to be inserted.</param>
+        /// <returns>Instance of <see cref="{{className.pascalCase}}"/> with filled identifier.</returns>
         public override {{className.pascalCase}} Insert({{className.pascalCase}} entity)
         {
+            {{#if supertype}}
+            {{../className.pascalCase}} entity = new {{className.pascalCase}}Repository(dbConnector).Insert(entity);
+
+            {{/if}}
             string sql = @"INSERT INTO schema.{{className.pascalCase}} (
+                          {{#if supertype}}
+                            {{#each supertype.fields}}
+                              {{#if isClassIdentifier}}
+                           {{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}, // supertype identifier
+                              {{/if}}
+                            {{/each}}
+                          {{/if}}
                           {{#each fields}}
+                            {{#if isClassIdentifier}}
+                              {{#unless hasDatabaseGeneratedId}}
                             {{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}{{#unless @last}},{{/unless}}
+                              {{/unless}}
+                            {{else}}
+                            {{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}{{#unless @last}},{{/unless}}
+                            {{/if}}
                           {{/each}}
                          ) VALUES(
-                           {{#each fields}}
-                             @{{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}{{#unless @last}},{{/unless}}
-                           {{/each}}
-                         );
+                           {{#if supertype}}
+                             {{#each supertype.fields}}
+                               {{#if isClassIdentifier}}
+                            @{{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}, // supertype identifier
+                               {{/if}}
+                             {{/each}}
+                           {{/if}}
+                          {{#each fields}}
+                            {{#if isClassIdentifier}}
+                              {{#unless hasDatabaseGeneratedId}}
+                            @{{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}{{#unless @last}},{{/unless}}
+                              {{/unless}}
+                            {{else}}
+                            @{{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}{{#unless @last}},{{/unless}}
+                            {{/if}}
+                          {{/each}}
+                         );{{#if supertype}}
                          SELECT CAST(SCOPE_IDENTITY() AS BIGINT)";
+                         {{else}}"{{/if}}
 
             entity.{{className.pascalCase}}Id = DbConnector.ExecuteScalar<long>(sql, new {
+              {{#if supertype}}
+                {{#each supertype.fields}}
+                  {{#if isClassIdentifier}}
+               {{fieldName.pascalCase}} = entity.{{fieldName.pascalCase}}, // supertype identifier
+                  {{/if}}
+                {{/each}}
+              {{/if}}
               {{#each fields}}
-                {{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}} = entity.{{#if type.isDomainClassType}}{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id{{else}}{{fieldName.pascalCase}}{{/if}}{{#unless @last}},{{/unless}}
+                {{#if isClassIdentifier}}
+                  {{#unless hasDatabaseGeneratedId}}
+               {{fieldName.pascalCase}} = entity.{{fieldName.pascalCase}}{{#unless @last}},{{/unless}}
+                  {{/unless}}
+                {{else}}
+               {{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}} = entity.{{#if type.isDomainClassType}}{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id{{else}}{{fieldName.pascalCase}}{{/if}}{{#unless @last}},{{/unless}}
+                {{/if}}
               {{/each}}
             });
 
             return entity;
         }
 
-        // TODO summary {{className.pascalCase}}Repository.Update
-        /// <inheritdoc/>
+        /// <summary>
+        /// Update a existing instance of <see cref="{{className.pascalCase}}"/> in the database...
+        /// </summary>
+        /// <param name="entity">Full-filled instance of <see cref="{{className.pascalCase}}"/> with identifiers defined.</param>
+        /// <returns>Number of affected rows.</returns>
         public override int Update({{className.pascalCase}} entity)
         {
             // TODO implement {{className.pascalCase}}Repository.Update
