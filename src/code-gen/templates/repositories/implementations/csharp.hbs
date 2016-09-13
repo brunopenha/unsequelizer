@@ -162,9 +162,8 @@ namespace {{namespace.namespacePascalCase}}
                             @{{fieldName.pascalCase}}{{#if type.isDomainClassType}}Id{{/if}}{{#unless @last}},{{/unless}}
                             {{/if}}
                           {{/each}}
-                         );{{#if supertype}}
-                         SELECT CAST(SCOPE_IDENTITY() AS BIGINT)";
-                         {{else}}"{{/if}}
+                         );{{#each fields}}{{#if isClassIdentifier}}{{#if hasDatabaseGeneratedId}}
+                         SELECT SCOPE_IDENTITY(){{/if}}{{/if}}{{/each}}";
 
             entity.{{className.pascalCase}}Id = DbConnector.ExecuteScalar<long>(sql, new {
               {{#if supertype}}

@@ -1,11 +1,15 @@
 {{#each dependencies}}
 using {{namespace}};
 {{/each}}
-
+using 
+using 
+using 
+using 
+using 
 using System;
 using System.Collections.Generic;
 
-namespace
+namespace 
 {
     /// <summary>
     /// Validator implementation for the {{className.pascalCase}} domain model entity.
@@ -17,7 +21,7 @@ namespace
       /// </summary>
       /// <param name="{{className.camelCase}}">The object to be validated.</param>
       /// <param name="violatedRules">List of violated validation rules.</param>
-      public override List<ResultDetail> Validate({{className.pascalCase}} {{className.camelCase}}, List<ResultDetail> violatedRules)
+      public override void Validate({{className.pascalCase}} {{className.camelCase}}, List<ResultDetail> violatedRules)
       {
           Validate{{className.pascalCase}}({{className.camelCase}}, violatedRules);
 
@@ -30,7 +34,7 @@ namespace
       {{#each fields}}
         {{#if @first}}
           {{#unless ../supertype}}
-          if ({{../className.camelCase}} == null) return violatedRules;
+          if ({{../className.camelCase}} == null) return; // avoid unnecessary validations
           {{/unless}}
         {{/if}}
         {{#if type.isDomainClassType}}
@@ -39,8 +43,6 @@ namespace
           if ({{../className.camelCase}}.{{fieldName.pascalCase}}{{#if isCollection}}List{{/if}} != null) Validate{{type.className.pascalCase}}({{../className.camelCase}}, violatedRules);
         {{/if}}
       {{/each}}
-
-          return violatedRules;
       }
 
       /// <summary>
@@ -52,17 +54,17 @@ namespace
       {
           if (ValidateMandatoryField({{className.camelCase}}, violatedRules, Resources.VLD_{{className.compactUpperCase}}_MANDATORY, "VLD_{{className.compactUpperCase}}_MANDATORY"))
           {
-            {{#each fields}}
+          {{#each fields}}
+            {{#unless type.isDomainClassType}}
               {{#if isNullable}}
-                {{{type.className}}}, {{{isNullable}}}, {{{fieldName}}}
                 {{#ifCond type.className "==" 'string'}}
               // Validate {{fieldName.pascalCase}} when entered (optional)
               if (string.IsNullOrWhiteSpace({{../className.camelCase}}.{{fieldName.pascalCase}}) == false)
               {
                   ValidateExpression(
-                      {{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength,
+                      {{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= DomainModelConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength,
                       violatedRules,
-                      string.format(Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength),
+                      string.Format(Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, DomainModelConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength),
                       "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT"
                   );
               }
@@ -80,9 +82,9 @@ namespace
               {
                   // {{fieldName.pascalCase}} length constraint validation
                   ValidateExpression(
-                      {{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength,
+                      {{../className.camelCase}}.{{fieldName.pascalCase}}.Length <= DomainModelConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength,
                       violatedRules,
-                      string.format(Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, ModelFieldsConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength),
+                      string.Format(Resources.VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT, DomainModelConstraints.{{../className.pascalCase}}.{{fieldName.pascalCase}}MaxLength),
                       "VLD_{{../className.compactUpperCase}}_{{fieldName.compactUpperCase}}_ABOVELIMIT"
                   );
               }
@@ -94,7 +96,8 @@ namespace
               {{#unless @last}}
 
               {{/unless}}
-            {{/each}}
+            {{/unless}}
+          {{/each}}
           }
       }
 {{#each fields}}

@@ -107,15 +107,19 @@ namespace {{namespace.namespacePascalCase}}
             {{className.pascalCase}} requestedEntity = DummyFactory.Dummy{{className.pascalCase}}();
             {{className.pascalCase}} retrievedEntity = null;
 
-            // Insert aggregated data
             {{#each fields}}
+                {{#if @first}}
+            // Insert aggregated data
+                {{/if}}
                 {{#if type.isDomainClassType}}
             _{{type.className.camelCase}}Repository.Insert({{type.className.camelCase}}Dummy);
                 {{/if}}
             {{/each}}
 
-            // Assign aggregated data
             {{#each fields}}
+                {{#if @first}}
+            // Assign aggregated data
+                {{/if}}
                 {{#if type.isDomainClassType}}
             requestedEntity.{{fieldName.pascalCase}} = {{type.className.camelCase}}Dummy;
                 {{/if}}
@@ -123,17 +127,23 @@ namespace {{namespace.namespacePascalCase}}
 
             // Insert tested model
             requestedEntity = _{{className.camelCase}}Repository.Insert(requestedEntity);
-            retrievedEntity = _{{className.camelCase}}Repository.GetById(requestedEntity.{{className.pascalCase}}Id);
+            {{#each fields}}{{#if isClassIdentifier~}}
+            retrievedEntity = _{{className.camelCase}}Repository.GetById(requestedEntity.{{fieldName.pascalCase}});
+            {{~/if}}{{/each}}
 
-            Assert.AreNotEqual(0, retrievedEntity.{{className.pascalCase}}Id);
+            {{#each fields}}{{#if isClassIdentifier~}}
+            Assert.AreNotEqual(0, retrievedEntity.{{fieldName.pascalCase}}, "Invalid identifier assigned to {{../className.pascalCase}} on tests.");
+            {{~/if}}{{/each}}
           {{#each fields}}
             {{#if type.isDomainClassType}}
               {{#if isNullable}}
+                {{#each type.fields}}{{#if isClassIdentifier}}
             // Nullable reference
             Assert.AreEqual(
-                requestedEntity.{{fieldName.pascalCase}} != null ? (long?) requestedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id : null,
-                retrievedEntity.{{fieldName.pascalCase}} != null ? (long?) retrievedEntity.{{fieldName.pascalCase}}.{{fieldName.pascalCase}}Id : null
+                requestedEntity.{{../fieldName.pascalCase}} != null ? (long?) requestedEntity.{{../fieldName.pascalCase}}.{{fieldName.pascalCase}} : null,
+                retrievedEntity.{{../fieldName.pascalCase}} != null ? (long?) retrievedEntity.{{../fieldName.pascalCase}}.{{fieldName.pascalCase}} : null
             );
+                {{/if}}{{/each}}
               {{else}}
 
             // Non-nullable reference
@@ -143,6 +153,11 @@ namespace {{namespace.namespacePascalCase}}
             Assert.AreEqual(requestedEntity.{{fieldName.pascalCase}}, retrievedEntity.{{fieldName.pascalCase}});
             {{/if}}
           {{/each}}
+
+          {{#each fields}}{{#if isClassIdentifier}}
+            int linesChanged = _{{../className.camelCase}}Repository.Delete(requestedEntity.{{fieldName.pascalCase}});
+            Assert.IsTrue(0 < linesChanged, "{{../className.pascalCase}} deletion test failed.");
+          {{/if}}{{/each}}
         }
 
         #endregion

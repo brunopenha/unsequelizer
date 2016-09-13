@@ -13,7 +13,7 @@ class AggregationDefinition {
 
     static parseDefinition(value) {
       // "REFERENCING_ENTITY.COLUMN AGGREGATION_TYPE REFERENCED_ENTITY"
-      const matches = String(value).match(/^\s*([^\s]+)\s*\.\s*([^\s]+)\s+([^\s]+)\s+([^\s]+)/i)
+      const matches = String(value).match(/^\s*(\w+)\s*\.\s*(\w+)\s+(\w+)\s+(\w+)/i)
 
       if (matches) {
         const referencingTable  = changeCase.snakeCase(matches[1])

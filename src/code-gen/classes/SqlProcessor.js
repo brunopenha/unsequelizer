@@ -60,11 +60,11 @@ class SqlProcessor {
     // REITERATE MAPPING DOMAIN CLASSES TO TYPES
     classes.forEach(targetClass => {
 
-      if (!targetClass.supertype) return;
-
       // Map supertype
-      const possibleSupertype = classes.find(possibleSupertype => possibleSupertype.className.snakeCase === targetClass.supertype.className.snakeCase)
-      if (possibleSupertype) targetClass.supertype = possibleSupertype
+      if (targetClass.supertype) {
+        const possibleSupertype = classes.find(possibleSupertype => possibleSupertype.className.snakeCase === targetClass.supertype.className.snakeCase)
+        if (possibleSupertype) targetClass.supertype = possibleSupertype
+      }
 
       // Map fields' types
       targetClass.fields.forEach(field => {

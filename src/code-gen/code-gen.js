@@ -214,7 +214,7 @@ function mapClass2Platform(language, classDef) { // TODO create Class mapper for
     if (language.sqlDictionary) {
        clone.fields.forEach(field => {
          if (!field.type.isDomainClassType) field.type = new Class(language.sqlDictionary[field.type.className.upperCase.trim()] || 'UNDEFINED_SQL_TYPE_MAPPING')
-         if (language.nullExceptionDictionary && language.nullExceptionDictionary.indexOf(field.type.className.toString()) !== -1) field.isNullable = false
+         if (language.nullableTypes && language.nullableTypes.indexOf(field.type.className.toString()) !== -1) field.isNullable = false
       })
     }
     return clone

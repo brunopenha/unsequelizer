@@ -1,0 +1,9 @@
+
+    public static class {{className.pascalCase}}
+    {
+    {{#each fields}}
+      {{#ifCond type.className "==" 'string'}}
+        public static readonly int {{fieldName.pascalCase}}MaxLength = 0;
+      {{/ifCond}}
+    {{/each}}
+    }

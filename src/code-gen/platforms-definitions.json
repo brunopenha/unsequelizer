@@ -8,6 +8,7 @@
         "dummies": "Dummy{{pascalCase}}.cs",
         "validators": "{{pascalCase}}Validator.cs",
         "properties": "{{pascalCase}}ValidationProperties.txt",
+        "constraints": "{{pascalCase}}Constraints.cs",
         "repositories.interfaces": "I{{pascalCase}}Repository.cs",
         "repositories.implementations": "{{pascalCase}}Repository.cs",
         "repositories.tests": "{{pascalCase}}RepositoryTest.cs"

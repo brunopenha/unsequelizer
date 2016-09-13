@@ -15,7 +15,7 @@ public static {{className.pascalCase}} Dummy{{className.pascalCase}}() {
 
 {{/if}}
   {{#each fields}}
-    dummy.{{fieldName.pascalCase}} = Dummy{{type.className.pascalCase}}();
+    dummy.{{fieldName.pascalCase}} = Dummy{{type.className.pascalCase}}{{#if isClassIdentifier}}Id{{/if}}();
   {{/each}}
 
     return dummy;
